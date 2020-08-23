@@ -1,0 +1,41 @@
+# test and publish to Pypi on checkin
+
+name: TestAndPublish
+
+on:
+  push:
+    tags: [alpha, beta, stable]
+  pull_request_target:
+    tags: [alpha, beta, stable]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Python Tox on Fedora
+      # You may pin to the exact commit or the version.
+      # uses: fedora-python/tox-github-action@0d9b98f987bb39e2a91109bc6995b40f445396b7
+      uses: fedora-python/tox-github-action@v0.3
+      with:
+        tox_env: py38
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
