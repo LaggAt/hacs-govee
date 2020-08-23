@@ -4,6 +4,7 @@ import sys
 import logging
 from dataclasses import dataclass
 import requests
+from typing import List
 
 _VERSION = "0.0.1" 
 _LOGGER = logging.getLogger(__name__)
@@ -33,16 +34,13 @@ class Govee(object):
     
     def Ping(self) -> bool:
         _LOGGER.debug("ping")
-        url = (
-            _API_URL
-            + "/ping"
-        )
+        url = (_API_URL + "/ping")
         r = requests.get(url=url)
         if not r.ok:
             raise Exception("ping failed: " + str(r.status_code))
         return 'Pong' == r.text
 
-    def GetDevices(self) -> bool:
+    def GetDevices(self) -> List[GoveeLightInfo]:
         _LOGGER.debug("get devices")
         url = (
             _API_URL

@@ -4,22 +4,24 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         {
-            "name": "run govee-api ping",
+            "name": "run govee_api ping",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee-api",
-            "program": "./govee-api.py",
+            "cwd": "${workspaceFolder}/govee_api",
+            "program": "./govee_api.py",
             "args": ["ping"],
             "console": "integratedTerminal"
         },{
-            "name": "run govee-api devices <api-key>",
+            "name": "run govee_api devices <api-key>",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee-api",
-            "program": "./govee-api.py",
-            "args": ["devices", "<your-api-key>"],
+            "cwd": "${workspaceFolder}/govee_api",
+            "program": "./govee_api.py",
+            "args": ["devices", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
+            
         },{
             "name": "create distribution package",
             "type": "python",
