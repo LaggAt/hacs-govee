@@ -8,7 +8,7 @@ INSTALL_REQUIRES = [
 ]
 
 setuptools.setup(
-    name="govee-api-laggat",
+    name="govee_api_laggat",
     version="0.0.1",
     author="Florian Lagg @LaggAt",
     author_email="florian.lagg@gmail.com",
