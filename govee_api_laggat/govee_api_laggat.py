@@ -71,7 +71,7 @@ if __name__ == '__main__':
     print()
 
     if(len(sys.argv) == 1):
-        print("python3 govee-api.py [command <API_KEY>]")
+        print("python3 govee_api_laggat.py [command <API_KEY>]")
         print("<command>'s: ping, devices")
         print()
 

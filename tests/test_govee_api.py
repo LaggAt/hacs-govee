@@ -1,7 +1,7 @@
 from unittest import TestCase
 import requests
 import requests_mock
-from govee_api import Govee
+from govee_api_laggat import Govee
 
 _API_URL = "https://developer-api.govee.com"
 _API_KEY = "SUPER_SECRET_KEY"

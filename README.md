@@ -1,4 +1,4 @@
-# govee-api Package
+# govee_api_laggat Package
 
 Python implementation of the govee API 1.0 to control the cheap and colorful LED strips.
 
