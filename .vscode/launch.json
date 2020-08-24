@@ -6,19 +6,19 @@
     "configurations": [
         
         {
-            "name": "run govee_api ping",
+            "name": "run govee_api_laggat ping",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api",
-            "program": "./govee_api.py",
+            "cwd": "${workspaceFolder}/govee_api_laggat",
+            "program": "./govee_api_laggat.py",
             "args": ["ping"],
             "console": "integratedTerminal"
         },{
-            "name": "run govee_api devices <api-key>",
+            "name": "run govee_api_laggat devices <api-key>",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api",
-            "program": "./govee_api.py",
+            "cwd": "${workspaceFolder}/govee_api_laggat",
+            "program": "./govee_api_laggat.py",
             "args": ["devices", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
             
