@@ -1,12 +1,10 @@
 # test and publish to Pypi on checkin
 
-name: TestAndPublish
+name: publish
 
 on:
   push:
-    tags: [alpha, beta, stable]
   pull_request:
-    tags: [alpha, beta, stable]
   workflow_dispatch:
 
 jobs:
@@ -32,6 +30,7 @@ jobs:
 
   deploy:
     needs: test
+    if: github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/stable'
     runs-on: ubuntu-latest
     
     steps:
