@@ -7,8 +7,8 @@ import asyncio
 import aiohttp
 from dataclasses import dataclass
 from typing import List, Tuple
+from .__version__ import VERSION
 
-VERSION = "0.0.3"
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
 
