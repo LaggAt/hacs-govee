@@ -62,7 +62,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        cz bump --yes
+        cz bump --yes --increment PATCH
     - name: Push changes
       uses: Woile/github-push-action@master
       with:
