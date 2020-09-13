@@ -58,6 +58,11 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         cz bump --yes --increment PATCH
+    - name: Push changes
+      uses: Woile/github-push-action@master
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        tags: "true"
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
