@@ -1,6 +1,6 @@
 # test and publish to Pypi on checkin
 
-name: publish
+name: tasks
 
 on:
   push:
@@ -31,11 +31,10 @@ jobs:
   deploy:
     needs: test
     if: |
-      !startsWith(github.event.head_commit.message, 'bump:') &&
+      !contains(github.event.head_commit.message, 'bump:') &&
       github.event == 'push' &&
       (github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/stable')
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
