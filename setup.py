@@ -1,5 +1,5 @@
 import setuptools
-from govee_api_laggat import VERSION
+from govee_api_laggat.__version__ import VERSION
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
