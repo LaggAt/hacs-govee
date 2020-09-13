@@ -2,18 +2,18 @@
 
 import sys
 import logging
-from typing import List
-
-from dataclasses import dataclass
+import time
 import asyncio
 import aiohttp
+from dataclasses import dataclass
+from typing import List, Tuple
 
-_VERSION = "0.0.1" 
+VERSION = "0.0.3"
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
 
 @dataclass
-class GoveeLightInfo(object):
+class GoveeDevices(object):
     device: str
     model: str
     device_name: str
@@ -41,6 +41,7 @@ class Govee(object):
     def __init__(self, api_key: str):
         """ init with an API_KEY """
         self._api_key = api_key
+        self._devices = []
         
     @classmethod
     async def create(cls, api_key: str):
@@ -54,44 +55,74 @@ class Govee(object):
     def _getAuthHeaders(self):
         return {'Govee-API-Key': self._api_key}
 
-    async def ping_async(self) -> bool:
+    @property
+    def devices(self):
+        """ returns the cached devices list """
+        return self._devices
+    
+    async def ping_async(self) -> Tuple[ float, str ]:
+        """ Ping the api endpoint. No API_KEY is needed
+            Returns: timeout_ms, error
+        """
         _LOGGER.debug("ping_async")
+        ping_ok_delay = None
+        err = None
+
         url = (_API_URL + "/ping")
+        start = time.time()
         async with self._session.get(url=url) as response:
-            assert response.status == 200
             result = await response.text()
-            return 'Pong' == result
-
-
-    async def get_devices(self) -> List[GoveeLightInfo]:
+            delay = int((time.time() - start) * 1000)
+            if response.status == 200:
+                if 'Pong' == result:
+                    ping_ok_delay = max(1, delay)
+                else:
+                    err = f'API-Result wrong: {result}'
+            else:
+                result = await response.text()
+                err = f'API-Error {response.status}: {result}'
+        return ping_ok_delay, err
+        
+            
+    async def get_devices(self) -> Tuple[ List[GoveeDevices], str ]:
+        """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
+        devices = []
+        err = None
+        
         url = (
             _API_URL
             + "/v1/devices"
         )
         async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
-            assert response.status == 200
-            result = await response.json()
-            light_infos = [
-                GoveeLightInfo(
-                    item["device"],
-                    item["model"],
-                    item["deviceName"],
-                    item["controllable"],
-                    item["retrievable"],
-                    "turn" in item["supportCmds"],
-                    "brightness" in item["supportCmds"],
-                    "color" in item["supportCmds"],
-                    "colorTem" in item["supportCmds"]
-                ) for item in result["data"]["devices"]
-            ]
-            return light_infos
+            if response.status == 200:
+                result = await response.json()
+                devices = [
+                    GoveeDevices(
+                        item["device"],
+                        item["model"],
+                        item["deviceName"],
+                        item["controllable"],
+                        item["retrievable"],
+                        "turn" in item["supportCmds"],
+                        "brightness" in item["supportCmds"],
+                        "color" in item["supportCmds"],
+                        "colorTem" in item["supportCmds"]
+                    ) for item in result["data"]["devices"]
+                ]
+            else:
+                result = await response.text()
+                err = f'API-Error {response.status}: {result}'
+        # cache last get_devices result
+        self._devices = devices
+        return devices, err
+
 
 if __name__ == '__main__':
     """ test connectivity """
 
     async def main():
-        print("Govee API client v" + _VERSION)
+        print("Govee API client v" + VERSION)
         print()
 
         if(len(sys.argv) == 1):
@@ -109,7 +140,8 @@ if __name__ == '__main__':
         # show usage with content manager
         async with Govee(api_key) as govee:
             if command=="ping":
-                print("Ping success? " + str(await govee.ping_async()))
+                ping_ms, err = await govee.ping_async()
+                print(f"Ping success? {bool(ping_ms)} after {ping_ms}ms")
             elif command=="devices":
                 print("Devices found: " + ", ".join([
                     item.device_name + " (" + item.device + ")"
@@ -120,7 +152,8 @@ if __name__ == '__main__':
         # show usage without content manager, but await and close()
         govee = await Govee.create(api_key)
         if command=="ping":
-            print("second Ping success? " + str(await govee.ping_async()))
+            ping_ms, err = await govee.ping_async()
+            print(f"second Ping success? {bool(ping_ms)} after {ping_ms}ms")
         await govee.close()
 
     loop = asyncio.get_event_loop()
