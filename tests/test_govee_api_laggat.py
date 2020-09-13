@@ -10,7 +10,7 @@ _API_KEY = "SUPER_SECRET_KEY"
 class GoveeTests(TestCase):
 
     @patch('aiohttp.ClientSession.get')
-    def test_ping_pong(self, mock_get):
+    def test_ping(self, mock_get):
         # arrange
         loop = asyncio.get_event_loop()
         mock_get.return_value.__aenter__.return_value.status = 200
