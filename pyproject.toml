@@ -1,5 +1,5 @@
 [tool.commitizen]
-version = "0.0.6"
+version = "0.0.7"
 version_files = [
     "govee_api_laggat/__version__.py:VERSION",
     "setup.py",
