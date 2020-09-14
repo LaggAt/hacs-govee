@@ -1,5 +1,4 @@
 import setuptools
-from govee_api_laggat.__version__ import VERSION
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -10,7 +9,7 @@ INSTALL_REQUIRES = [
 
 setuptools.setup(
     name="govee_api_laggat",
-    version=VERSION,
+    version="0.0.7",
     author="Florian Lagg @LaggAt",
     author_email="florian.lagg@gmail.com",
     description="Implementation of the govee API to control LED strips and bulbs.",

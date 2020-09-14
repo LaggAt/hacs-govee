@@ -3,14 +3,18 @@
 import sys
 import logging
 import time
+import datetime
 import asyncio
 import aiohttp
 from dataclasses import dataclass
 from typing import List, Tuple
-from .__version__ import VERSION
 
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
+# API rate limit header keys
+_RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're permitted to make per minute.
+_RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
+_RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
 
 @dataclass
 class GoveeDevices(object):
@@ -42,6 +46,10 @@ class Govee(object):
         """ init with an API_KEY """
         self._api_key = api_key
         self._devices = []
+        self._rate_limit_on = 5 # safe available call count for multiple processes
+        self._limit = 100
+        self._limit_remaining = 100
+        self._limit_reset = 0
         
     @classmethod
     async def create(cls, api_key: str):
@@ -55,6 +63,34 @@ class Govee(object):
     def _getAuthHeaders(self):
         return {'Govee-API-Key': self._api_key}
 
+    def _track_rate_limit(self, response):
+        """ rate limiting information """
+        if _RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers:
+            self._limit = response.headers[_RATELIMIT_TOTAL]
+            self._limit_remaining = response.headers[_RATELIMIT_REMAINING]
+            self._limit_reset = response.headers[_RATELIMIT_RESET]
+
+    async def _rate_limit(self):
+        if(self._limit_remaining <= self._rate_limit_on):
+            utcnow = datetime.datetime.utcnow().timestamp()
+            if(self._limit_reset > utcnow):
+                sleep_sec = self._limit_reset - utcnow
+                _LOGGER.warn(f"Rate limiting active, {self._limit_remaining} of {self._limit} remaining, sleeping for {sleep_sec}s.")
+                await asyncio.sleep(sleep_sec)
+    
+    @property
+    def rate_limit_on(self):
+        return self._rate_limit_on
+
+    @rate_limit_on.setter
+    def rate_limit_on(self, val):
+        if val > self._limit:
+            raise Exception(f"Rate limiter threshold {val} must be below {self._limit}")
+        if val < 1:
+            raise Exception(f"Rate limiter threshold {val} must be above 1")
+        self._rate_limit_on = val
+        
+    
     @property
     def devices(self):
         """ returns the cached devices list """
@@ -65,13 +101,15 @@ class Govee(object):
             Returns: timeout_ms, error
         """
         _LOGGER.debug("ping_async")
+        start = time.time()
+        await self._rate_limit()
         ping_ok_delay = None
         err = None
 
         url = (_API_URL + "/ping")
-        start = time.time()
         async with self._session.get(url=url) as response:
             result = await response.text()
+            self._track_rate_limit(response)
             delay = int((time.time() - start) * 1000)
             if response.status == 200:
                 if 'Pong' == result:
@@ -87,6 +125,7 @@ class Govee(object):
     async def get_devices(self) -> Tuple[ List[GoveeDevices], str ]:
         """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
+        await self._rate_limit()
         devices = []
         err = None
         
@@ -122,7 +161,7 @@ if __name__ == '__main__':
     """ test connectivity """
 
     async def main():
-        print("Govee API client v" + VERSION)
+        print("Govee API client")
         print()
 
         if(len(sys.argv) == 1):
