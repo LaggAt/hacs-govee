@@ -38,7 +38,7 @@ jobs:
     needs: test
     if: |
       !contains(github.event.head_commit.message, 'bump:') &&
-      github.event_name == 'push' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/stable')
     runs-on: ubuntu-latest
     strategy:
