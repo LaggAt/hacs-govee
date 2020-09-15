@@ -5,7 +5,6 @@
     "version": "0.2.0",
     "justMyCode": false,
     "configurations": [
-        
         {
             "name": "run govee_api_laggat ping",
             "type": "python",
@@ -21,6 +20,24 @@
             "cwd": "${workspaceFolder}/govee_api_laggat",
             "program": "./govee_api_laggat.py",
             "args": ["devices", "${env:GOVEE_API_KEY}"],
+            "console": "integratedTerminal"
+            
+        },{
+            "name": "run govee_api_laggat turn_on <api-key>",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/govee_api_laggat",
+            "program": "./govee_api_laggat.py",
+            "args": ["turn_on", "${env:GOVEE_API_KEY}"],
+            "console": "integratedTerminal"
+            
+        },{
+            "name": "run govee_api_laggat turn_off <api-key>",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/govee_api_laggat",
+            "program": "./govee_api_laggat.py",
+            "args": ["turn_off", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
             
         },{
