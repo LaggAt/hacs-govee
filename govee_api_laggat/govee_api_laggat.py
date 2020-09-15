@@ -7,7 +7,7 @@ import datetime
 import asyncio
 import aiohttp
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
@@ -17,7 +17,7 @@ _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining
 _RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
 
 @dataclass
-class GoveeDevices(object):
+class GoveeDevice(object):
     device: str
     model: str
     device_name: str
@@ -122,7 +122,7 @@ class Govee(object):
         return ping_ok_delay, err
         
             
-    async def get_devices(self) -> Tuple[ List[GoveeDevices], str ]:
+    async def get_devices(self) -> Tuple[ List[GoveeDevice], str ]:
         """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
         await self._rate_limit()
@@ -137,7 +137,7 @@ class Govee(object):
             if response.status == 200:
                 result = await response.json()
                 devices = [
-                    GoveeDevices(
+                    GoveeDevice(
                         item["device"],
                         item["model"],
                         item["deviceName"],
@@ -155,6 +155,60 @@ class Govee(object):
         # cache last get_devices result
         self._devices = devices
         return devices, err
+
+    async def turn_on(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
+        """ turn on a device, return success and error message """
+        return await self._turn(device, "on")
+
+    async def turn_off(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
+        """ turn off a device, return success and error message """
+        return await self._turn(device, "off")
+
+    async def _turn(self, device: Union[str, GoveeDevice], onOff: str) -> Tuple[ bool, str ]:
+        _LOGGER.debug(f'turn_{onOff}')
+        success = False
+        err = None
+        device_str = device
+        if isinstance(device, GoveeDevice):
+            device_str = device.device
+            if not device in self._devices:
+                device = None #disallow unknown devices
+        elif isinstance(device, str):
+            device = next((x for x in self._devices if x.device == device_str), None)
+        if not device:
+            err = f'Invalid device {device_str}'
+        else:
+            if not device.controllable:
+                err = f'Device {device.device} is not controllable'
+            elif not device.support_turn:
+                err = f'Turn command not possible on device {device.device}'
+            else:
+                await self._rate_limit()
+                url = (
+                    _API_URL
+                    + "/v1/devices/control"
+                )
+                json = {
+                    "device": device.device,
+                    "model": device.model,
+                    "cmd": {
+                        "name": "turn",
+                        "value": onOff
+                    }
+                }
+                async with self._session.put(
+                    url=url, 
+                    headers = self._getAuthHeaders(),
+                    json=json
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        success = 'message' in result and result['message'] == 'Success'
+                    else:
+                        result = await response.text()
+                        err = f'API-Error {response.status}: {result}'
+
+        return success, err
 
 
 if __name__ == '__main__':
@@ -187,6 +241,16 @@ if __name__ == '__main__':
                     for item
                     in govee.get_devices()
                 ]))
+            elif command=="turn_on":
+                devices, err = await govee.get_devices()
+                for lamp in devices:
+                    success, err = await govee.turn_on(lamp)
+            elif command=="turn_off":
+                devices, err = await govee.get_devices()
+                for lamp in devices:
+                    success, err = await govee.turn_off(lamp.device) # by id here
+
+
         
         # show usage without content manager, but await and close()
         govee = await Govee.create(api_key)
