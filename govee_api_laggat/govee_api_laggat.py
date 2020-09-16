@@ -7,7 +7,7 @@ import datetime
 import asyncio
 import aiohttp
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
@@ -17,7 +17,8 @@ _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining
 _RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
 
 @dataclass
-class GoveeDevices(object):
+class GoveeDevice(object):
+    """ Govee Device DTO """
     device: str
     model: str
     device_name: str
@@ -27,6 +28,16 @@ class GoveeDevices(object):
     support_brightness: bool
     support_color: bool
     support_color_tem: bool
+    
+@dataclass
+class GoveeDeviceState(object):
+    """ State of a Govee Device DTO """
+    device: str
+    model: str
+    online: bool
+    power_state: bool
+    brightness: int
+    color: Tuple[ int, int, int ]
 
 class Govee(object):
     """ client to connect to the govee API """
@@ -122,7 +133,7 @@ class Govee(object):
         return ping_ok_delay, err
         
             
-    async def get_devices(self) -> Tuple[ List[GoveeDevices], str ]:
+    async def get_devices(self) -> Tuple[ List[GoveeDevice], str ]:
         """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
         await self._rate_limit()
@@ -137,7 +148,7 @@ class Govee(object):
             if response.status == 200:
                 result = await response.json()
                 devices = [
-                    GoveeDevices(
+                    GoveeDevice(
                         item["device"],
                         item["model"],
                         item["deviceName"],
@@ -157,8 +168,127 @@ class Govee(object):
         return devices, err
 
 
+    def _get_device(self, device:  Union[str, GoveeDevice]) -> Tuple[ str, GoveeDevice ]:
+        """ get a device by address or GoveeDevice dto """
+        device_str = device
+        if isinstance(device, GoveeDevice):
+            device_str = device.device
+            if not device in self._devices:
+                device = None #disallow unknown devices
+        elif isinstance(device, str):
+            device = next((x for x in self._devices if x.device == device_str), None)
+        return device_str, device
+
+    async def turn_on(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
+        """ turn on a device, return success and error message """
+        return await self._turn(device, "on")
+
+    async def turn_off(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
+        """ turn off a device, return success and error message """
+        return await self._turn(device, "off")
+
+    async def _turn(self, device: Union[str, GoveeDevice], onOff: str) -> Tuple[ bool, str ]:
+        device_str, device = self._get_device(device)
+        _LOGGER.debug(f'turn_{onOff} {device_str}')
+        success = False
+        err = None
+        if not device:
+            err = f'Invalid device {device_str}'
+        else:
+            if not device.controllable:
+                err = f'Device {device.device} is not controllable'
+            elif not device.support_turn:
+                err = f'Turn command not possible on device {device.device}'
+            else:
+                await self._rate_limit()
+                url = (
+                    _API_URL
+                    + "/v1/devices/control"
+                )
+                json = {
+                    "device": device.device,
+                    "model": device.model,
+                    "cmd": {
+                        "name": "turn",
+                        "value": onOff
+                    }
+                }
+                async with self._session.put(
+                    url=url, 
+                    headers = self._getAuthHeaders(),
+                    json=json
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        success = 'message' in result and result['message'] == 'Success'
+                    else:
+                        result = await response.text()
+                        err = f'API-Error {response.status}: {result}'
+
+        return success, err
+
+    async def get_state(self, device: Union[str, GoveeDevice]) -> Tuple[ GoveeDeviceState, str ]:
+        device_str, device = self._get_device(device)
+        _LOGGER.debug(f'get_state {device_str}')
+        result = None
+        err = None
+        if not device:
+            err = f'Invalid device {device_str}'
+        else:
+            await self._rate_limit()
+            url = (
+                _API_URL
+                + "/v1/devices/state"
+            )
+            params = {
+                'device': device.device,
+                'model': device.model
+            }
+            async with self._session.get(
+                url=url,
+                headers = self._getAuthHeaders(),
+                params=params
+            ) as response:
+                if response.status == 200:
+                    json_obj = await response.json()
+
+                    prop_online = False
+                    prop_power_state = False
+                    prop_brightness = False
+                    prop_color = (0, 0, 0)
+
+                    for prop in json_obj['data']['properties']:
+                        # somehow these are all dicts with one element
+                        if 'online' in prop:
+                            prop_online = prop['online']
+                        elif 'powerState' in prop:
+                            prop_power_state = prop['powerState'] == 'on'
+                        elif 'brightness' in prop:
+                            prop_brightness = prop['brightness']
+                        elif 'color' in prop:
+                            prop_color = (
+                                prop['color']['r'],
+                                prop['color']['g'],
+                                prop['color']['b']
+                            )
+                        else:
+                            _LOGGER.warn(f'unknown state property {prop}')
+
+                    result = GoveeDeviceState(
+                        json_obj["data"]["device"],
+                        json_obj["data"]["model"],
+                        prop_online,
+                        prop_power_state,
+                        prop_brightness,
+                        prop_color
+                    )
+                else:
+                    result = await response.text()
+                    err = f'API-Error {response.status}: {result}'
+        return result, err
+
 if __name__ == '__main__':
-    """ test connectivity """
+    """ some example usages """
 
     async def main():
         print("Govee API client")
@@ -166,7 +296,7 @@ if __name__ == '__main__':
 
         if(len(sys.argv) == 1):
             print("python3 govee_api_laggat.py [command <API_KEY>]")
-            print("<command>'s: ping, devices")
+            print("<command>'s: ping, devices, turn_on, turn_off, get_state")
             print()
 
         command = "ping"
@@ -187,13 +317,30 @@ if __name__ == '__main__':
                     for item
                     in govee.get_devices()
                 ]))
+            elif command=="turn_on":
+                devices, err = await govee.get_devices()
+                for lamp in devices:
+                    success, err = await govee.turn_on(lamp)
+            elif command=="turn_off":
+                devices, err = await govee.get_devices()
+                for lamp in devices:
+                    success, err = await govee.turn_off(lamp.device) # by id here
+            elif command=="state":
+                devices, err = await govee.get_devices()
+                for lamp in devices:
+                    state, err = await govee.get_state(lamp)
+                    if err:
+                        print(f'{lamp.device_name} error getting state: {err}')
+                    else:
+                        print(f'{lamp.device_name} is powered on? {state.power_state}')
+
         
         # show usage without content manager, but await and close()
-        govee = await Govee.create(api_key)
         if command=="ping":
+            govee = await Govee.create(api_key)
             ping_ms, err = await govee.ping_async()
             print(f"second Ping success? {bool(ping_ms)} after {ping_ms}ms")
-        await govee.close()
+            await govee.close()
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
