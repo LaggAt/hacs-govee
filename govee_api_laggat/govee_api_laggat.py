@@ -227,7 +227,7 @@ class Govee(object):
 
         return success, err
 
-    async def get_state(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
+    async def get_state(self, device: Union[str, GoveeDevice]) -> Tuple[ GoveeDeviceState, str ]:
         device_str, device = self._get_device(device)
         _LOGGER.debug(f'get_state {device_str}')
         result = None
