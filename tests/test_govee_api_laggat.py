@@ -3,7 +3,7 @@ from asynctest import TestCase, MagicMock, patch, CoroutineMock
 from aiohttp import ClientSession
 import datetime
 
-from govee_api_laggat import Govee, GoveeDevice
+from govee_api_laggat import Govee, GoveeDevice, GoveeDeviceState
 
 _API_URL = "https://developer-api.govee.com"
 _API_KEY = "SUPER_SECRET_KEY"
@@ -11,7 +11,7 @@ _RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're pe
 _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
 
-# json results
+# json results for lights
 JSON_DEVICE = {
     'device': '40:83:FF:FF:FF:FF:FF:FF',
     'model': 'H6163',
@@ -43,6 +43,42 @@ DUMMY_DEVICE = GoveeDevice(
     support_brightness = 'brightness' in JSON_DEVICE['supportCmds'],
     support_color = 'color' in JSON_DEVICE['supportCmds'],
     support_color_tem = 'colorTem' in JSON_DEVICE['supportCmds'],
+)
+# json results for light states
+JSON_DEVICE_STATE = {
+    "data": {
+        "device": JSON_DEVICE['device'],
+        "model": JSON_DEVICE['model'],
+        "properties": [
+            {
+                "online": True
+            },
+            {
+                "powerState": "on"
+            },
+            {
+                "brightness": 254
+            },
+            {
+                "color": {
+                    "r": 139,
+                    "b": 255,
+                    "g": 0
+                }
+            }
+        ]
+    },
+    "message": "Success",
+    "code": 200
+}
+# light device state
+DUMMY_DEVICE_STATE = GoveeDeviceState(
+    device = JSON_DEVICE['device'],
+    model = JSON_DEVICE['model'],
+    online = True,
+    power_state = True,
+    brightness = 254,
+    color = (139, 0, 255)
 )
 
 class GoveeTests(TestCase):
@@ -254,3 +290,26 @@ class GoveeTests(TestCase):
         }
         assert success == True
 
+    @patch('aiohttp.ClientSession.get')
+    def test_get_state(self, mock_get):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_get.return_value.__aenter__.return_value.status = 200
+        mock_get.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value = JSON_DEVICE_STATE
+        )
+        # act
+        async def getDevices():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.get_state(DUMMY_DEVICE)
+        result, err = loop.run_until_complete(getDevices())
+        # assert
+        assert err == None
+        assert mock_get.call_count == 1
+        assert mock_get.call_args.kwargs['url'] == 'https://developer-api.govee.com/v1/devices/state'
+        assert mock_get.call_args.kwargs['headers'] == {'Govee-API-Key': 'SUPER_SECRET_KEY'}
+        assert mock_get.call_args.kwargs['params'] == {'device': DUMMY_DEVICE.device, 'model': DUMMY_DEVICE.model}
+        assert isinstance(result, GoveeDeviceState)
+        assert result == DUMMY_DEVICE_STATE
