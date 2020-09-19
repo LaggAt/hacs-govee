@@ -90,6 +90,18 @@ class Govee(object):
                 await asyncio.sleep(sleep_sec)
     
     @property
+    def rate_limit_total(self):
+        return self._limit
+    
+    @property
+    def rate_limit_remaining(self):
+        return self._limit_remaining
+    
+    @property
+    def rate_limit_reset(self):
+        return self._limit_reset
+
+    @property
     def rate_limit_on(self):
         return self._rate_limit_on
 
