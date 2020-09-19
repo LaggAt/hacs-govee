@@ -242,7 +242,7 @@ class Govee(object):
         return success, err
 
     async def set_color(self, device: Union[str, GoveeDevice], color: Tuple[ int, int, int ]) -> Tuple[ bool, str ]:
-        """ set color (r, g, b) where each value may be in range 0 .. 254 """
+        """ set color (r, g, b) where each value may be in range 0 .. 255 """
         success = False
         err = None
         if len(color) != 3:
@@ -251,11 +251,11 @@ class Govee(object):
             red = color[0]
             green = color[1]
             blue = color[2]
-            if red < 0 or red > 254:
+            if red < 0 or red > 255:
                 err = f'set_color: invalid value {color}, red must be within 0 .. 254'
-            elif green < 0 or green > 254:
+            elif green < 0 or green > 255:
                 err = f'set_color: invalid value {color}, green must be within 0 .. 254'
-            elif blue < 0 or blue > 254:
+            elif blue < 0 or blue > 255:
                 err = f'set_color: invalid value {color}, blue must be within 0 .. 254'
             else:
                 command = "color"
@@ -366,12 +366,12 @@ class Govee(object):
                             _LOGGER.warn(f'unknown state property {prop}')
 
                     result = GoveeDeviceState(
-                        json_obj["data"]["device"],
-                        json_obj["data"]["model"],
-                        prop_online,
-                        prop_power_state,
-                        prop_brightness,
-                        prop_color
+                        device = json_obj["data"]["device"],
+                        model = json_obj["data"]["model"],
+                        online = prop_online,
+                        power_state = prop_power_state,
+                        brightness = prop_brightness,
+                        color = prop_color
                     )
                 else:
                     result = await response.text()
