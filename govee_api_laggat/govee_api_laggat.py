@@ -381,8 +381,8 @@ class Govee(object):
                         color = prop_color
                     )
                 else:
-                    result = await response.text()
-                    self._track_rate_limit(response)
+                    errText = await response.text()
+                    self._track_rate_limit(errText)
                     err = f'API-Error {response.status}: {result}'
         return result, err
 
