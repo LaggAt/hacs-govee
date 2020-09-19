@@ -126,11 +126,11 @@ class Govee(object):
         """
         _LOGGER.debug("ping_async")
         start = time.time()
-        await self._rate_limit()
         ping_ok_delay = None
         err = None
 
         url = (_API_URL + "/ping")
+        await self._rate_limit()
         async with self._session.get(url=url) as response:
             result = await response.text()
             self._track_rate_limit(response)
@@ -149,7 +149,6 @@ class Govee(object):
     async def get_devices(self) -> Tuple[ List[GoveeDevice], str ]:
         """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
-        await self._rate_limit()
         devices = []
         err = None
         
@@ -157,9 +156,11 @@ class Govee(object):
             _API_URL
             + "/v1/devices"
         )
+        await self._rate_limit()
         async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
             if response.status == 200:
                 result = await response.json()
+                self._track_rate_limit(response)
                 devices = [
                     GoveeDevice(
                         device = item["device"],
@@ -176,6 +177,7 @@ class Govee(object):
                 ]
             else:
                 result = await response.text()
+                self._track_rate_limit(response)
                 err = f'API-Error {response.status}: {result}'
         # cache last get_devices result
         self._devices = devices
@@ -296,7 +298,6 @@ class Govee(object):
             elif not command in device.support_cmds:
                 err = f'Command {command} not possible on device {device.device}'
             else:
-                await self._rate_limit()
                 url = (
                     _API_URL
                     + "/v1/devices/control"
@@ -306,6 +307,7 @@ class Govee(object):
                     "model": device.model,
                     "cmd": cmd
                 }
+                await self._rate_limit()
                 async with self._session.put(
                     url=url, 
                     headers = self._getAuthHeaders(),
@@ -313,8 +315,10 @@ class Govee(object):
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
+                        self._track_rate_limit(response)
                     else:
                         text = await response.text()
+                        self._track_rate_limit(response)
                         err = f'API-Error {response.status} on command {cmd}: {text} for device {device}'
         return result, err
 
@@ -326,7 +330,6 @@ class Govee(object):
         if not device:
             err = f'Invalid device {device_str}'
         else:
-            await self._rate_limit()
             url = (
                 _API_URL
                 + "/v1/devices/state"
@@ -335,6 +338,7 @@ class Govee(object):
                 'device': device.device,
                 'model': device.model
             }
+            await self._rate_limit()
             async with self._session.get(
                 url=url,
                 headers = self._getAuthHeaders(),
@@ -342,7 +346,7 @@ class Govee(object):
             ) as response:
                 if response.status == 200:
                     json_obj = await response.json()
-
+                    self._track_rate_limit(response)
                     prop_online = False
                     prop_power_state = False
                     prop_brightness = False
@@ -375,6 +379,7 @@ class Govee(object):
                     )
                 else:
                     result = await response.text()
+                    self._track_rate_limit(response)
                     err = f'API-Error {response.status}: {result}'
         return result, err
 
