@@ -78,9 +78,12 @@ class Govee(object):
     def _track_rate_limit(self, response):
         """ rate limiting information """
         if _RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers:
-            self._limit = response.headers[_RATELIMIT_TOTAL]
-            self._limit_remaining = response.headers[_RATELIMIT_REMAINING]
-            self._limit_reset = response.headers[_RATELIMIT_RESET]
+            try:
+                self._limit = int(response.headers[_RATELIMIT_TOTAL])
+                self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
+                self._limit_reset = float(response.headers[_RATELIMIT_RESET])
+            except ex:
+                _LOGGER.warn(f'Cannot track rate limits, response headers: {response.headers}')
 
     async def _rate_limit(self):
         if(self._limit_remaining <= self._rate_limit_on):
