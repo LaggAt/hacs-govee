@@ -114,9 +114,9 @@ class GoveeTests(TestCase):
         )
         sleep_until = datetime.datetime.utcnow().timestamp() + 1
         mock_get.return_value.__aenter__.return_value.headers = {
-            _RATELIMIT_TOTAL: 100,
-            _RATELIMIT_REMAINING: 5, # by default below 5 it is sleeping
-            _RATELIMIT_RESET: sleep_until
+            _RATELIMIT_TOTAL: '100',
+            _RATELIMIT_REMAINING: '5', # by default below 5 it is sleeping
+            _RATELIMIT_RESET: f'{sleep_until}'
         }
         # act
         async def ping():
@@ -150,9 +150,9 @@ class GoveeTests(TestCase):
         )
         sleep_until = datetime.datetime.utcnow().timestamp() + 1
         mock_get.return_value.__aenter__.return_value.headers = {
-            _RATELIMIT_TOTAL: 100,
-            _RATELIMIT_REMAINING: 5, # by default below 5 it is sleeping
-            _RATELIMIT_RESET: sleep_until
+            _RATELIMIT_TOTAL: '100',
+            _RATELIMIT_REMAINING: '5', # by default below 5 it is sleeping
+            _RATELIMIT_RESET: f'{sleep_until}'
         }
         # act
         async def ping():
