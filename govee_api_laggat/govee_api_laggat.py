@@ -86,10 +86,9 @@ class Govee(object):
                 _LOGGER.warn(f'Cannot track rate limits, response headers: {response.headers}')
 
     async def _rate_limit(self):
-        if(self._limit_remaining <= self._rate_limit_on):
-            utcnow = datetime.datetime.utcnow().timestamp()
-            if(self._limit_reset > utcnow):
-                sleep_sec = self._limit_reset - utcnow
+        if self._limit_remaining <= self._rate_limit_on:
+            sleep_sec = self.rate_limit_reset_seconds
+            if sleep_sec > 0:
                 _LOGGER.warn(f"Rate limiting active, {self._limit_remaining} of {self._limit} remaining, sleeping for {sleep_sec}s.")
                 await asyncio.sleep(sleep_sec)
     
@@ -104,6 +103,11 @@ class Govee(object):
     @property
     def rate_limit_reset(self):
         return self._limit_reset
+
+    @property
+    def rate_limit_reset_seconds(self):
+        utcnow = datetime.datetime.utcnow().timestamp()
+        return self._limit_reset - utcnow
 
     @property
     def rate_limit_on(self):
