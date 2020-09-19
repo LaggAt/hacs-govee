@@ -32,6 +32,7 @@ JSON_DEVICES = {
         ]
     }
 }
+JSON_OK_RESPONSE = {'code': 200, 'data': {}, 'message': 'Success'}
 # light device
 DUMMY_DEVICE = GoveeDevice(
     device = JSON_DEVICE['device'],
@@ -39,6 +40,7 @@ DUMMY_DEVICE = GoveeDevice(
     device_name = JSON_DEVICE['deviceName'],
     controllable = JSON_DEVICE['controllable'],
     retrievable = JSON_DEVICE['retrievable'],
+    support_cmds = JSON_DEVICE['supportCmds'],
     support_turn = 'turn' in JSON_DEVICE['supportCmds'],
     support_brightness = 'brightness' in JSON_DEVICE['supportCmds'],
     support_color = 'color' in JSON_DEVICE['supportCmds'],
@@ -119,8 +121,14 @@ class GoveeTests(TestCase):
         # act
         async def ping():
             async with Govee(_API_KEY) as govee:
+                assert govee.rate_limit_on == 5
+                assert govee.rate_limit_total == 100
+                assert govee.rate_limit_reset == 0
+                assert govee.rate_limit_remaining == 100
                 # first run uses defaults, so ping returns immediatly
                 delay1, err1 = await govee.ping_async()
+                assert govee.rate_limit_remaining == 5
+                assert govee.rate_limit_reset == sleep_until
                 # second run, rate limit sleeps until the second is over
                 delay2, err2 = await govee.ping_async()
                 return delay1, err1, delay2, err2
@@ -236,7 +244,7 @@ class GoveeTests(TestCase):
         loop = asyncio.get_event_loop()
         mock_put.return_value.__aenter__.return_value.status = 200
         mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
-            return_value = {'code': 200, 'data': {}, 'message': 'Success'}
+            return_value = JSON_OK_RESPONSE
         )
         # act
         async def turn_on():
@@ -261,12 +269,45 @@ class GoveeTests(TestCase):
         assert success == True
 
     @patch('aiohttp.ClientSession.put')
+    def test_turn_on_auth_failure(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_put.return_value.__aenter__.return_value.status = 401
+        mock_put.return_value.__aenter__.return_value.text = CoroutineMock(
+            return_value = "Test auth failed"
+        )
+        # act
+        async def turn_on():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.turn_on(DUMMY_DEVICE)
+        success, err = loop.run_until_complete(turn_on())
+        # assert
+        assert mock_put.call_count == 1
+        assert mock_put.call_args.kwargs['url'] == 'https://developer-api.govee.com/v1/devices/control'
+        assert mock_put.call_args.kwargs['headers'] == {'Govee-API-Key': 'SUPER_SECRET_KEY'}
+        assert mock_put.call_args.kwargs['json'] == {
+            "device": DUMMY_DEVICE.device,
+            "model": DUMMY_DEVICE.model,
+            "cmd": {
+                "name": "turn",
+                "value": "on"
+            }
+        }
+        assert success == False
+        assert "401" in err # http status
+        assert "Test auth failed" in err # http message
+        assert "turn" in err # command used
+        assert DUMMY_DEVICE.device in err # device used
+
+    @patch('aiohttp.ClientSession.put')
     def test_turn_off_by_address(self, mock_put):
         # arrange
         loop = asyncio.get_event_loop()
         mock_put.return_value.__aenter__.return_value.status = 200
         mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
-            return_value = {'code': 200, 'data': {}, 'message': 'Success'}
+            return_value = JSON_OK_RESPONSE
         )
         # act
         async def turn_off():
@@ -313,3 +354,131 @@ class GoveeTests(TestCase):
         assert mock_get.call_args.kwargs['params'] == {'device': DUMMY_DEVICE.device, 'model': DUMMY_DEVICE.model}
         assert isinstance(result, GoveeDeviceState)
         assert result == DUMMY_DEVICE_STATE
+
+    @patch('aiohttp.ClientSession.put')
+    def test_set_brightness_to_high(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        brightness = 255 # too high
+
+        # act
+        async def set_brightness():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.set_brightness(DUMMY_DEVICE, brightness)
+        success, err = loop.run_until_complete(set_brightness())
+        # assert
+        assert success == False
+        assert mock_put.call_count == 0
+        assert "254" in err
+        assert "brightness" in err
+
+    @patch('aiohttp.ClientSession.put')
+    def test_set_brightness_to_low(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        brightness = -1 # too high
+
+        # act
+        async def set_brightness():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.set_brightness(DUMMY_DEVICE, brightness)
+        success, err = loop.run_until_complete(set_brightness())
+        # assert
+        assert success == False
+        assert mock_put.call_count == 0
+        assert "254" in err
+        assert "brightness" in err
+
+    @patch('aiohttp.ClientSession.put')
+    def test_set_brightness(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_put.return_value.__aenter__.return_value.status = 200
+        mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value = JSON_OK_RESPONSE
+        )
+        # act
+        async def set_brightness():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.set_brightness(DUMMY_DEVICE.device, 42)
+        success, err = loop.run_until_complete(set_brightness())
+        # assert
+        assert err == None
+        assert mock_put.call_count == 1
+        assert mock_put.call_args.kwargs['url'] == 'https://developer-api.govee.com/v1/devices/control'
+        assert mock_put.call_args.kwargs['headers'] == {'Govee-API-Key': 'SUPER_SECRET_KEY'}
+        assert mock_put.call_args.kwargs['json'] == {
+            "device": DUMMY_DEVICE.device,
+            "model": DUMMY_DEVICE.model,
+            "cmd": {
+                "name": "brightness",
+                "value": 42 * 100 // 254 # we need to control brightness betweenn 0 .. 100
+            }
+        }
+        assert success == True
+
+    @patch('aiohttp.ClientSession.put')
+    def test_set_color_temp(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_put.return_value.__aenter__.return_value.status = 200
+        mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value = JSON_OK_RESPONSE
+        )
+        # act
+        async def set_color_temp():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.set_color_temp(DUMMY_DEVICE.device, 6000)
+        success, err = loop.run_until_complete(set_color_temp())
+        # assert
+        assert err == None
+        assert mock_put.call_count == 1
+        assert mock_put.call_args.kwargs['url'] == 'https://developer-api.govee.com/v1/devices/control'
+        assert mock_put.call_args.kwargs['headers'] == {'Govee-API-Key': 'SUPER_SECRET_KEY'}
+        assert mock_put.call_args.kwargs['json'] == {
+            "device": DUMMY_DEVICE.device,
+            "model": DUMMY_DEVICE.model,
+            "cmd": {
+                "name": "colorTem",
+                "value": 6000
+            }
+        }
+        assert success == True
+
+    @patch('aiohttp.ClientSession.put')
+    def test_set_color(self, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_put.return_value.__aenter__.return_value.status = 200
+        mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value = JSON_OK_RESPONSE
+        )
+        # act
+        async def set_color():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = [DUMMY_DEVICE]
+                return await govee.set_color(DUMMY_DEVICE.device, (42, 43, 44))
+        success, err = loop.run_until_complete(set_color())
+        # assert
+        assert err == None
+        assert mock_put.call_count == 1
+        assert mock_put.call_args.kwargs['url'] == 'https://developer-api.govee.com/v1/devices/control'
+        assert mock_put.call_args.kwargs['headers'] == {'Govee-API-Key': 'SUPER_SECRET_KEY'}
+        assert mock_put.call_args.kwargs['json'] == {
+            "device": DUMMY_DEVICE.device,
+            "model": DUMMY_DEVICE.model,
+            "cmd": {
+                "name": "color",
+                "value": {"r": 42, "g": 43, "b": 44}
+            }
+        }
+        assert success == True
