@@ -77,7 +77,7 @@ class Govee(object):
 
     def _track_rate_limit(self, response):
         """ rate limiting information """
-        if _RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers:
+        if(_RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers):
             try:
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
@@ -139,8 +139,8 @@ class Govee(object):
         url = (_API_URL + "/ping")
         await self._rate_limit()
         async with self._session.get(url=url) as response:
-            result = await response.text()
             self._track_rate_limit(response)
+            result = await response.text()
             delay = int((time.time() - start) * 1000)
             if response.status == 200:
                 if 'Pong' == result:
@@ -165,9 +165,9 @@ class Govee(object):
         )
         await self._rate_limit()
         async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
+            self._track_rate_limit(response)
             if response.status == 200:
                 result = await response.json()
-                self._track_rate_limit(response)
                 devices = [
                     GoveeDevice(
                         device = item["device"],
@@ -184,7 +184,6 @@ class Govee(object):
                 ]
             else:
                 result = await response.text()
-                self._track_rate_limit(response)
                 err = f'API-Error {response.status}: {result}'
         # cache last get_devices result
         self._devices = devices
@@ -320,12 +319,11 @@ class Govee(object):
                     headers = self._getAuthHeaders(),
                     json=json
                 ) as response:
+                    self._track_rate_limit(response)
                     if response.status == 200:
                         result = await response.json()
-                        self._track_rate_limit(response)
                     else:
                         text = await response.text()
-                        self._track_rate_limit(response)
                         err = f'API-Error {response.status} on command {cmd}: {text} for device {device}'
         return result, err
 
@@ -351,9 +349,9 @@ class Govee(object):
                 headers = self._getAuthHeaders(),
                 params=params
             ) as response:
+                self._track_rate_limit(response)
                 if response.status == 200:
                     json_obj = await response.json()
-                    self._track_rate_limit(response)
                     prop_online = False
                     prop_power_state = False
                     prop_brightness = False
@@ -386,7 +384,6 @@ class Govee(object):
                     )
                 else:
                     errText = await response.text()
-                    self._track_rate_limit(errText)
                     err = f'API-Error {response.status}: {result}'
         return result, err
 
