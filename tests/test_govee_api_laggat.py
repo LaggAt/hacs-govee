@@ -119,8 +119,14 @@ class GoveeTests(TestCase):
         # act
         async def ping():
             async with Govee(_API_KEY) as govee:
+                assert govee.rate_limit_on == 5
+                assert govee.rate_limit_total == 100
+                assert govee.rate_limit_reset == 0
+                assert govee.rate_limit_remaining == 100
                 # first run uses defaults, so ping returns immediatly
                 delay1, err1 = await govee.ping_async()
+                assert govee.rate_limit_remaining == 5
+                assert govee.rate_limit_reset == sleep_until
                 # second run, rate limit sleeps until the second is over
                 delay2, err2 = await govee.ping_async()
                 return delay1, err1, delay2, err2
