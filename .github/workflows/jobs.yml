@@ -65,7 +65,8 @@ jobs:
         branch: ${{ github.ref }}
   
   deploy:
-    needs: bump
+    needs: test
+    if: contains(github.event.head_commit.message, 'bump:') 
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
