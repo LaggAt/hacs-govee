@@ -8,12 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  information:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug Action
-      uses: hmarr/debug-action@v1.0.0
-
   test:
     runs-on: ubuntu-latest
     strategy:
