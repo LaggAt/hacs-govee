@@ -1,7 +1,7 @@
 import asyncio
 from asynctest import TestCase, MagicMock, patch, CoroutineMock
 from aiohttp import ClientSession
-import datetime
+from datetime import datetime
 
 from govee_api_laggat import Govee, GoveeDevice, GoveeDeviceState
 
@@ -112,10 +112,10 @@ class GoveeTests(TestCase):
         mock_get.return_value.__aenter__.return_value.text = CoroutineMock(
             return_value="Pong"
         )
-        sleep_until = datetime.datetime.utcnow().timestamp() + 1
+        sleep_until = datetime.timestamp(datetime.now()) + 1
         mock_get.return_value.__aenter__.return_value.headers = {
             _RATELIMIT_TOTAL: '100',
-            _RATELIMIT_REMAINING: '5', # by default below 5 it is sleeping
+            _RATELIMIT_REMAINING: '5', 
             _RATELIMIT_RESET: f'{sleep_until}'
         }
         # act
@@ -148,7 +148,7 @@ class GoveeTests(TestCase):
         mock_get.return_value.__aenter__.return_value.text = CoroutineMock(
             return_value="Pong"
         )
-        sleep_until = datetime.datetime.utcnow().timestamp() + 1
+        sleep_until = datetime.timestamp(datetime.now()) + 1
         mock_get.return_value.__aenter__.return_value.headers = {
             _RATELIMIT_TOTAL: '100',
             _RATELIMIT_REMAINING: '5', # by default below 5 it is sleeping
