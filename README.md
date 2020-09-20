@@ -18,6 +18,11 @@ The integration project lives here: [github.com/LaggAt/home-assistant-core](http
 
 Govee and the Govee logo are trademarks or registered trademarks of Shenzhen Intellirock Company Limited, and used by Govee with permission. Neither your use of the Govee Logo grant you any right, title, or interest in, or any license to reproduce or otherwise use, the Govee logo. You shall not at any time, nor shall you assist others to, challenge Govee's right, title, or interest in, or the validity of, the Govee Marks.
 
+## Links
+
+- PyPi project and python package: [pypi.org/project/govee-api-laggat](https://pypi.org/project/govee-api-laggat/)
+- Home Assistant integration Git: [github.com/LaggAt/home-assistant-core](https://github.com/LaggAt/home-assistant-core/tree/feature/govee-led-strips/homeassistant/components/govee)
+
 ## API Key
 
 To get an api key you need to install the 'Govee Home' app on your mobile and browse the user tab - About - Request API key. Usually you get your key within seconds by mail.

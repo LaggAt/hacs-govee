@@ -15,7 +15,7 @@ setuptools.setup(
     description="Implementation of the govee API to control LED strips and bulbs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/LaggAt/govee-api",
+    url="https://github.com/LaggAt/govee-api-laggat",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
