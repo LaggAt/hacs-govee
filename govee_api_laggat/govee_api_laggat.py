@@ -3,7 +3,7 @@
 import sys
 import logging
 import time
-import datetime
+from datetime import datetime
 import asyncio
 import aiohttp
 from dataclasses import dataclass
@@ -77,7 +77,7 @@ class Govee(object):
 
     def _track_rate_limit(self, response):
         """ rate limiting information """
-        if _RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers:
+        if(_RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers):
             try:
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
@@ -86,10 +86,9 @@ class Govee(object):
                 _LOGGER.warn(f'Cannot track rate limits, response headers: {response.headers}')
 
     async def _rate_limit(self):
-        if(self._limit_remaining <= self._rate_limit_on):
-            utcnow = datetime.datetime.utcnow().timestamp()
-            if(self._limit_reset > utcnow):
-                sleep_sec = self._limit_reset - utcnow
+        if self._limit_remaining <= self._rate_limit_on:
+            sleep_sec = self.rate_limit_reset_seconds
+            if sleep_sec > 0:
                 _LOGGER.warn(f"Rate limiting active, {self._limit_remaining} of {self._limit} remaining, sleeping for {sleep_sec}s.")
                 await asyncio.sleep(sleep_sec)
     
@@ -104,6 +103,11 @@ class Govee(object):
     @property
     def rate_limit_reset(self):
         return self._limit_reset
+
+    @property
+    def rate_limit_reset_seconds(self):
+        utcnow = datetime.timestamp(datetime.now())
+        return self._limit_reset - utcnow
 
     @property
     def rate_limit_on(self):
@@ -135,8 +139,8 @@ class Govee(object):
         url = (_API_URL + "/ping")
         await self._rate_limit()
         async with self._session.get(url=url) as response:
-            result = await response.text()
             self._track_rate_limit(response)
+            result = await response.text()
             delay = int((time.time() - start) * 1000)
             if response.status == 200:
                 if 'Pong' == result:
@@ -161,9 +165,9 @@ class Govee(object):
         )
         await self._rate_limit()
         async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
+            self._track_rate_limit(response)
             if response.status == 200:
                 result = await response.json()
-                self._track_rate_limit(response)
                 devices = [
                     GoveeDevice(
                         device = item["device"],
@@ -180,7 +184,6 @@ class Govee(object):
                 ]
             else:
                 result = await response.text()
-                self._track_rate_limit(response)
                 err = f'API-Error {response.status}: {result}'
         # cache last get_devices result
         self._devices = devices
@@ -216,6 +219,19 @@ class Govee(object):
         success = False
         if not err:
             success = self._is_success_result_message(result)
+        return success, err
+
+    async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
+        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control)
+            Govee state returns brightness in the range 0 .. 254, but for setting you need to use 0 .. 100
+        """
+        success = False
+        err = None
+        if brightness < 0 or brightness > 254:
+            err = f'set_brightness: invalid value {brightness}, allowed range 0 .. 254'
+        else:
+            brightness_100 = brightness * 100 // 254
+            success, err = await self.set_brightness_100(device, brightness_100)
         return success, err
 
     async def set_brightness_100(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
@@ -271,19 +287,6 @@ class Govee(object):
                     success = self._is_success_result_message(result)
         return success, err
 
-    async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
-        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control)
-            Govee state returns brightness in the range 0 .. 254, but for setting you need to use 0 .. 100
-        """
-        success = False
-        err = None
-        if brightness < 0 or brightness > 254:
-            err = f'set_brightness100: invalid value {brightness}, allowed range 0 .. 254'
-        else:
-            brightness_100 = brightness * 100 // 254
-            success, err = await self.set_brightness_100(device, brightness_100)
-        return success, err
-
     async def _control(self, device: Union[str, GoveeDevice], command: str, params: Any) -> Tuple[ Any, str ]:
         device_str, device = self._get_device(device)
         cmd = {
@@ -316,12 +319,11 @@ class Govee(object):
                     headers = self._getAuthHeaders(),
                     json=json
                 ) as response:
+                    self._track_rate_limit(response)
                     if response.status == 200:
                         result = await response.json()
-                        self._track_rate_limit(response)
                     else:
                         text = await response.text()
-                        self._track_rate_limit(response)
                         err = f'API-Error {response.status} on command {cmd}: {text} for device {device}'
         return result, err
 
@@ -347,9 +349,9 @@ class Govee(object):
                 headers = self._getAuthHeaders(),
                 params=params
             ) as response:
+                self._track_rate_limit(response)
                 if response.status == 200:
                     json_obj = await response.json()
-                    self._track_rate_limit(response)
                     prop_online = False
                     prop_power_state = False
                     prop_brightness = False
@@ -382,7 +384,6 @@ class Govee(object):
                     )
                 else:
                     errText = await response.text()
-                    self._track_rate_limit(errText)
                     err = f'API-Error {response.status}: {result}'
         return result, err
 

@@ -8,12 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  information:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug Action
-      uses: hmarr/debug-action@v1.0.0
-
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -71,7 +65,11 @@ jobs:
         branch: ${{ github.ref }}
   
   deploy:
-    needs: bump
+    needs: test
+    if: |
+      contains(github.event.head_commit.message, 'bump:') &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/stable')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
