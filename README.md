@@ -14,7 +14,7 @@ The integration project lives here: [github.com/LaggAt/home-assistant-core](http
 
 ## Govee trademark
 
-![Govee logo](doc/media/govee_logo_orig.jpg =300x)
+![Govee logo](doc/media/govee_logo_orig.jpg =300x91)
 
 Govee and the Govee logo are trademarks or registered trademarks of Shenzhen Intellirock Company Limited, and used by Govee with permission. Neither your use of the Govee Logo grant you any right, title, or interest in, or any license to reproduce or otherwise use, the Govee logo. You shall not at any time, nor shall you assist others to, challenge Govee's right, title, or interest in, or the validity of, the Govee Marks.
 
