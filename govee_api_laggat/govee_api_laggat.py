@@ -3,7 +3,7 @@
 import sys
 import logging
 import time
-import datetime
+from datetime import datetime
 import asyncio
 import aiohttp
 from dataclasses import dataclass
@@ -106,7 +106,7 @@ class Govee(object):
 
     @property
     def rate_limit_reset_seconds(self):
-        utcnow = datetime.datetime.utcnow().timestamp()
+        utcnow = datetime.timestamp(datetime.now())
         return self._limit_reset - utcnow
 
     @property
@@ -221,6 +221,19 @@ class Govee(object):
             success = self._is_success_result_message(result)
         return success, err
 
+    async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
+        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control)
+            Govee state returns brightness in the range 0 .. 254, but for setting you need to use 0 .. 100
+        """
+        success = False
+        err = None
+        if brightness < 0 or brightness > 254:
+            err = f'set_brightness: invalid value {brightness}, allowed range 0 .. 254'
+        else:
+            brightness_100 = brightness * 100 // 254
+            success, err = await self.set_brightness_100(device, brightness_100)
+        return success, err
+
     async def set_brightness_100(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
         """ set brightness to 0 .. 100 """
         success = False
@@ -272,19 +285,6 @@ class Govee(object):
                 success = False
                 if not err:
                     success = self._is_success_result_message(result)
-        return success, err
-
-    async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
-        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control)
-            Govee state returns brightness in the range 0 .. 254, but for setting you need to use 0 .. 100
-        """
-        success = False
-        err = None
-        if brightness < 0 or brightness > 254:
-            err = f'set_brightness100: invalid value {brightness}, allowed range 0 .. 254'
-        else:
-            brightness_100 = brightness * 100 // 254
-            success, err = await self.set_brightness_100(device, brightness_100)
         return success, err
 
     async def _control(self, device: Union[str, GoveeDevice], command: str, params: Any) -> Tuple[ Any, str ]:
