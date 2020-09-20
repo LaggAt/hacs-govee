@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.1.x] - 2020-09-21
+### Added
+- Support for H6104 (which is controllable, but not retrievable)
+
 ## [0.0.27] - 2020-09-20
 ### Added
 - implementation of Govee API 1.0

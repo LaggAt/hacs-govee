@@ -334,6 +334,9 @@ class Govee(object):
         err = None
         if not device:
             err = f'Invalid device {device_str}'
+        elif not device.retrievable:
+            _LOGGER.debug(f"device {device_str} isn't able to return state")
+            pass
         else:
             url = (
                 _API_URL
