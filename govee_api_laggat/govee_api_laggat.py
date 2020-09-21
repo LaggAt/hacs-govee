@@ -154,7 +154,6 @@ class Govee(object):
             lst.append(self._states[dev])
         return lst
     
-    @property
     def state(self, device) -> GoveeDeviceState:
         """ returns the cached state for a device """
         device_str, device = self._get_device(device)
