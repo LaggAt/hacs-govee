@@ -75,10 +75,36 @@ DUMMY_DEVICE_H6104 = GoveeDevice(
     support_color='color' in JSON_DEVICE_H6104['supportCmds'],
     support_color_tem='colorTem' in JSON_DEVICE_H6104['supportCmds'],
 )
-DUMMY_DEVICES = [
-    DUMMY_DEVICE_H6163,
-    DUMMY_DEVICE_H6104,
-]
+# light device state
+DUMMY_DEVICE_STATE_H6163 = GoveeDeviceState(
+    device=JSON_DEVICE_H6163['device'],
+    model=JSON_DEVICE_H6163['model'],
+    online=True,
+    power_state=True,
+    brightness=254,
+    color=(139, 0, 255),
+    timestamp = 0,
+    source = 'api' # this device supports status
+)
+DUMMY_DEVICE_STATE_H6104 = GoveeDeviceState(
+    device=JSON_DEVICE_H6104['device'],
+    model=JSON_DEVICE_H6104['model'],
+    online=True,
+    power_state=False,
+    brightness=0,
+    color=(0, 0, 0),
+    timestamp = 0,
+    source = 'history'
+)
+DUMMY_DEVICES = {
+    DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163,
+    DUMMY_DEVICE_H6104.device: DUMMY_DEVICE_H6104,
+}
+DUMMY_STATES = {
+    DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163,
+    DUMMY_DEVICE_STATE_H6104.device: DUMMY_DEVICE_STATE_H6104,
+}
+
 # json results for light states
 JSON_DEVICE_STATE = {
     "data": {
@@ -106,16 +132,6 @@ JSON_DEVICE_STATE = {
     "message": "Success",
     "code": 200
 }
-# light device state
-DUMMY_DEVICE_STATE = GoveeDeviceState(
-    device=JSON_DEVICE_H6163['device'],
-    model=JSON_DEVICE_H6163['model'],
-    online=True,
-    power_state=True,
-    brightness=254,
-    color=(139, 0, 255)
-)
-
 
 class GoveeTests(TestCase):
 
@@ -140,12 +156,50 @@ class GoveeTests(TestCase):
         assert mock_get.call_args.kwargs['url'] == 'https://developer-api.govee.com/ping'
 
     @patch('aiohttp.ClientSession.get')
-    def test_rate_limiter(self, mock_get):
+    @patch('asyncio.sleep')
+    def test_rate_limiter(self, mock_sleep, mock_get):
         # arrange
         loop = asyncio.get_event_loop()
         mock_get.return_value.__aenter__.return_value.status = 200
         mock_get.return_value.__aenter__.return_value.text = CoroutineMock(
             return_value="Pong"
+        )
+        sleep_until = datetime.timestamp(datetime.now()) + 1
+        mock_get.return_value.__aenter__.return_value.headers = {
+            _RATELIMIT_TOTAL: '100',
+            _RATELIMIT_REMAINING: '5',
+            _RATELIMIT_RESET: f'{sleep_until}'
+        }
+        mock_sleep.return_value.__aenter__.return_value.text = CoroutineMock()
+        # act
+        async def ping():
+            async with Govee(_API_KEY) as govee:
+                assert govee.rate_limit_on == 5
+                assert govee.rate_limit_total == 100
+                assert govee.rate_limit_reset == 0
+                assert govee.rate_limit_remaining == 100
+                # first run uses defaults, so ping returns immediatly
+                delay1, err1 = await govee.ping_async()
+                assert mock_sleep.call_count == 0
+                assert govee.rate_limit_remaining == 5
+                assert govee.rate_limit_reset == sleep_until
+                # second run, rate limit sleeps until the second is over
+                delay2, err2 = await govee.ping_async()
+                assert mock_sleep.call_count == 1
+                return err1, err2
+        err1, err2 = loop.run_until_complete(ping())
+        # assert
+        assert not err1
+        assert not err2
+        assert mock_get.call_count == 2
+
+    @patch('aiohttp.ClientSession.get')
+    def test_rate_limit_exceeded(self, mock_get):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_get.return_value.__aenter__.return_value.status = 429 # too many requests
+        mock_get.return_value.__aenter__.return_value.text = CoroutineMock(
+            return_value="Rate limit exceeded, retry in 1 seconds."
         )
         sleep_until = datetime.timestamp(datetime.now()) + 1
         mock_get.return_value.__aenter__.return_value.headers = {
@@ -162,19 +216,12 @@ class GoveeTests(TestCase):
                 assert govee.rate_limit_reset == 0
                 assert govee.rate_limit_remaining == 100
                 # first run uses defaults, so ping returns immediatly
-                delay1, err1 = await govee.ping_async()
-                assert govee.rate_limit_remaining == 5
-                assert govee.rate_limit_reset == sleep_until
-                # second run, rate limit sleeps until the second is over
-                delay2, err2 = await govee.ping_async()
-                return delay1, err1, delay2, err2
-        delay1, err1, delay2, err2 = loop.run_until_complete(ping())
+                return await govee.ping_async()
+        delay1, err1 = loop.run_until_complete(ping())
         # assert
-        assert delay1 < 10  # this should return immediatly
-        assert delay2 > 900  # this should sleep for around 1s
-        assert not err1
-        assert not err2
-        assert mock_get.call_count == 2
+        assert not delay1
+        assert err1 == 'API-Error 429: Rate limit exceeded, retry in 1 seconds.'
+        assert mock_get.call_count == 1
 
     @patch('aiohttp.ClientSession.get')
     def test_rate_limiter_custom_threshold(self, mock_get):
@@ -294,7 +341,8 @@ class GoveeTests(TestCase):
         async def turn_on():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.turn_on(DUMMY_DEVICE_H6163)
         success, err = loop.run_until_complete(turn_on())
         # assert
@@ -326,7 +374,8 @@ class GoveeTests(TestCase):
         async def turn_on():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.turn_on(DUMMY_DEVICE_H6163)
         success, err = loop.run_until_complete(turn_on())
         # assert
@@ -361,7 +410,8 @@ class GoveeTests(TestCase):
         async def turn_off():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 # use device address here
                 return await govee.turn_off(DUMMY_DEVICE_H6163.device)
         success, err = loop.run_until_complete(turn_off())
@@ -382,23 +432,25 @@ class GoveeTests(TestCase):
         assert success == True
 
     @patch('aiohttp.ClientSession.get')
-    def test_get_state(self, mock_get):
+    @patch('govee_api_laggat.Govee._state_request_allowed')
+    def test_get_state(self, mock_state_request_allowed, mock_get):
         # arrange
         loop = asyncio.get_event_loop()
+        mock_state_request_allowed.return_value = True # always get live state
         mock_get.return_value.__aenter__.return_value.status = 200
         mock_get.return_value.__aenter__.return_value.json = CoroutineMock(
             return_value=JSON_DEVICE_STATE
         )
         # act
-
         async def getDevices():
             async with Govee(_API_KEY) as govee:
                 # inject devices for testing
                 govee._devices = DUMMY_DEVICES
+                govee._states = DUMMY_STATES
                 results_per_device = {}
                 errors_per_device = {}
-                for device in DUMMY_DEVICES:
-                    results_per_device[device.device], errors_per_device[device.device] = await govee.get_state(device)
+                for dev in DUMMY_DEVICES:
+                    results_per_device[dev], errors_per_device[dev] = await govee.get_state(dev)
                 return results_per_device, errors_per_device
         results, errors = loop.run_until_complete(getDevices())
         # assert
@@ -413,8 +465,10 @@ class GoveeTests(TestCase):
             'device': DUMMY_DEVICE_H6163.device, 'model': DUMMY_DEVICE_H6163.model}
         assert len(results) == 2
         assert isinstance(results[DUMMY_DEVICE_H6163.device], GoveeDeviceState)
-        assert results[DUMMY_DEVICE_H6163.device] == DUMMY_DEVICE_STATE
-        assert results[DUMMY_DEVICE_H6104.device] == None
+        DUMMY_DEVICE_STATE_H6163.timestamp = results[DUMMY_DEVICE_H6163.device].timestamp
+        assert results[DUMMY_DEVICE_H6163.device] == DUMMY_DEVICE_STATE_H6163
+        assert results[DUMMY_DEVICE_H6104.device] == DUMMY_DEVICE_STATE_H6104
+        assert mock_state_request_allowed.call_count == 1
 
     @patch('aiohttp.ClientSession.put')
     def test_set_brightness_to_high(self, mock_put):
@@ -426,7 +480,8 @@ class GoveeTests(TestCase):
         async def set_brightness():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.set_brightness(DUMMY_DEVICE_H6163, brightness)
         success, err = loop.run_until_complete(set_brightness())
         # assert
@@ -445,7 +500,8 @@ class GoveeTests(TestCase):
         async def set_brightness():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.set_brightness(DUMMY_DEVICE_H6163, brightness)
         success, err = loop.run_until_complete(set_brightness())
         # assert
@@ -463,11 +519,11 @@ class GoveeTests(TestCase):
             return_value=JSON_OK_RESPONSE
         )
         # act
-
         async def set_brightness():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.set_brightness(DUMMY_DEVICE_H6163.device, 42)
         success, err = loop.run_until_complete(set_brightness())
         # assert
@@ -499,7 +555,8 @@ class GoveeTests(TestCase):
         async def set_color_temp():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.set_color_temp(DUMMY_DEVICE_H6163.device, 6000)
         success, err = loop.run_until_complete(set_color_temp())
         # assert
@@ -531,7 +588,8 @@ class GoveeTests(TestCase):
         async def set_color():
             async with Govee(_API_KEY) as govee:
                 # inject a device for testing
-                govee._devices = [DUMMY_DEVICE_H6163]
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
                 return await govee.set_color(DUMMY_DEVICE_H6163.device, (42, 43, 44))
         success, err = loop.run_until_complete(set_color())
         # assert
@@ -549,3 +607,32 @@ class GoveeTests(TestCase):
             }
         }
         assert success == True
+
+    @patch('aiohttp.ClientSession.put')
+    @patch('aiohttp.ClientSession.get')
+    def test_turn_on_and_get_cache_state(self, mock_get, mock_put):
+        # arrange
+        loop = asyncio.get_event_loop()
+        mock_put.return_value.__aenter__.return_value.status = 200
+        mock_put.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value=JSON_OK_RESPONSE
+        )
+        mock_get.return_value.__aenter__.return_value.status = 200
+        mock_get.return_value.__aenter__.return_value.json = CoroutineMock(
+            return_value=JSON_DEVICE_STATE # never touched
+        )
+        # act
+        async def turn_on_and_get_state():
+            async with Govee(_API_KEY) as govee:
+                # inject a device for testing
+                govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
+                govee._states = {DUMMY_DEVICE_STATE_H6163.device: DUMMY_DEVICE_STATE_H6163}
+                await govee.turn_on(DUMMY_DEVICE_H6163)
+                # getting state to early (2s after switching)
+                return await govee.get_state(DUMMY_DEVICE_H6163)
+        state, err = loop.run_until_complete(turn_on_and_get_state())
+        # assert
+        assert state.source == 'history'
+        assert err == None
+        assert mock_put.call_count == 1
+        assert mock_get.call_count == 0 # may not get state
