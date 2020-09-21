@@ -141,19 +141,27 @@ class Govee(object):
     @property
     def devices(self):
         """ returns the cached devices list """
-        devs = []
+        lst = []
         for dev in self._devices:
-            devs.append(self._devices[dev])
-        return devs
+            lst.append(self._devices[dev])
+        return lst
     
     @property
     def states(self):
         """ returns the cached states list """
-        devs = []
+        lst = []
         for dev in self._states:
-            devs.append(self._states[dev])
-        return devs
+            lst.append(self._states[dev])
+        return lst
     
+    @property
+    def state(self, device) -> GoveeDeviceState:
+        """ returns the cached state for a device """
+        device_str, device = self._get_device(device)
+        if device_str:
+            return self.states[device_str]
+        return None
+
     async def ping_async(self) -> Tuple[ float, str ]:
         """ Ping the api endpoint. No API_KEY is needed
             Returns: timeout_ms, error
