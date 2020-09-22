@@ -15,7 +15,7 @@ _API_URL = "https://developer-api.govee.com"
 _RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
-BRIGHTNESS_100_MODELS = ["H6163", "H6089","H7022","H6086","H6135","H6137","H7005","H6002","H6003"]
+BRIGHTNESS_254_MODELS = [] # maybe these? support asked: ["H6089","H7022","H6086","H6135","H6137","H7005","H6002","H6003"]
 
 @dataclass
 class GoveeDevice(object):
@@ -280,9 +280,7 @@ class Govee(object):
         return success, err
 
     async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
-        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control)
-            Govee state returns brightness in the range 0 .. 254, but for setting you need to use 0 .. 100
-        """
+        """ set brightness to 0 .. 254 (converted to 0 .. 100 for control on some devices) """
         success = False
         err = None
         device_str, device = self._get_device(device)
@@ -292,8 +290,10 @@ class Govee(object):
             if brightness < 0 or brightness > 254:
                 err = f'set_brightness: invalid value {brightness}, allowed range 0 .. 254'
             else:
+                # set brightness as 0..254
                 brightness_set = brightness
-                if device.model in BRIGHTNESS_100_MODELS:
+                if device.model not in BRIGHTNESS_254_MODELS:
+                    # set brightness as 0..100
                     brightness_set = brightness * 100 // 254
                 command = "brightness"
                 result, err = await self._control(device, command, brightness_set)
