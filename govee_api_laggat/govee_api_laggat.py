@@ -99,6 +99,7 @@ class Govee(object):
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
                 self._limit_reset = float(response.headers[_RATELIMIT_RESET])
+                _LOGGER.debug(f'Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds')
                 limit_unknown = False
             except ex:
                 _LOGGER.warning(f'Error trying to set rate limits: {ex}')
