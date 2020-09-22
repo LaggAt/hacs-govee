@@ -158,7 +158,7 @@ class Govee(object):
         """ returns the cached state for a device """
         device_str, device = self._get_device(device)
         if device_str:
-            return self.states[device_str]
+            return self._states[device_str]
         return None
 
     async def ping_async(self) -> Tuple[ float, str ]:
