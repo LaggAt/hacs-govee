@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for H6104 and similar devices (which are controllable, but not retrievable)
 - async rate_limit_delay() public available to wait for rate limiting
+- better tracking of error 429 (rate limit hit)
+- debug log contains full json and object states
 ### Changed
 - According to Govee API-support brightness is set different on different devices:
   0-100: "H6089","H7022","H6086","H6135","H6137","H7005","H6002","H6003" (implemented)
@@ -28,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Status request is answered from cache after any command within two seconds
 ### Removed
 - control color by rgb values - not used by home assistant.
+### Fixed
+- API-Error did return None, instead of the error message
 
 ## [0.0.27] - 2020-09-20
 ### Added
