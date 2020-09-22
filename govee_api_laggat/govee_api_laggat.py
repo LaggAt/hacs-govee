@@ -249,6 +249,9 @@ class Govee(object):
             device = self._devices[device_str]
         return device_str, device
 
+    def _is_success_result_message(self, result) -> bool:
+        return 'message' in result and result['message'] == 'Success'
+
     async def turn_on(self, device: Union[str, GoveeDevice]) -> Tuple[ bool, str ]:
         """ turn on a device, return success and error message """
         return await self._turn(device, "on")
@@ -257,16 +260,23 @@ class Govee(object):
         """ turn off a device, return success and error message """
         return await self._turn(device, "off")
 
-    def _is_success_result_message(self, result) -> bool:
-        return 'message' in result and result['message'] == 'Success'
-
     async def _turn(self, device: Union[str, GoveeDevice], onOff: str) -> Tuple[ bool, str ]:
-        command = "turn"
-        params = onOff
-        result, err = await self._control(device, command, params)
         success = False
-        if not err:
-            success = self._is_success_result_message(result)
+        err = None
+        device_str, device = self._get_device(device)
+        if not device:
+            err = f'Invalid device {device_str}, {device}'
+        else:
+            command = "turn"
+            params = onOff
+            result, err = await self._control(device, command, params)
+            success = False
+            if not err:
+                success = self._is_success_result_message(result)
+                if success:
+                    self._states[device_str].timestamp = self._utcnow
+                    self._states[device_str].source = 'history'
+                    self._states[device_str].power_state = onOff == "on"
         return success, err
 
     async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
