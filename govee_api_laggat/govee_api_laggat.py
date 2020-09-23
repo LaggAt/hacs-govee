@@ -91,15 +91,22 @@ class Govee(object):
 
     def _track_rate_limit(self, response):
         """ rate limiting information """
+        if response.status == 429:
+            _LOGGER.warning(f'Rate limit exceeded, check if other devices also utilize the govee API')
+        limit_unknown = True
         if(_RATELIMIT_TOTAL in response.headers and _RATELIMIT_REMAINING in response.headers and _RATELIMIT_RESET in response.headers):
             try:
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
                 self._limit_reset = float(response.headers[_RATELIMIT_RESET])
-                if response.status == 429:
-                    _LOGGER.warning(f'Rate limit exceeded, check if other devices also utilize the govee API')
+                _LOGGER.debug(f'Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds')
+                limit_unknown = False
             except ex:
-                _LOGGER.warn(f'Cannot track rate limits, response headers: {response.headers}')
+                _LOGGER.warning(f'Error trying to set rate limits: {ex}')
+        if limit_unknown:
+            self._limit_remaining = 0
+            self._limit_reset = float(self._utcnow() + 5)
+            _LOGGER.warning(f'Rate limits are unknown, next request is 5 seconds delayed, response headers: {response.headers}')
 
     async def rate_limit_delay(self):
         # do we have requests left?
@@ -107,7 +114,7 @@ class Govee(object):
             # do we need to sleep?
             sleep_sec = self.rate_limit_reset_seconds
             if sleep_sec > 0:
-                _LOGGER.warn(f"Rate limiting active, {self._limit_remaining} of {self._limit} remaining, sleeping for {sleep_sec}s.")
+                _LOGGER.warning(f"Rate limiting active, {self._limit_remaining} of {self._limit} remaining, sleeping for {sleep_sec}s.")
                 await asyncio.sleep(sleep_sec)
     
     @property
@@ -414,6 +421,7 @@ class Govee(object):
             # we just changed something, return state from history
             self._states[device_str].source = 'history'
             result = self._states[device_str]
+            _LOGGER.debug(f'state object returned from cache: {result}')
         else:
             url = (
                 _API_URL
@@ -453,7 +461,7 @@ class Govee(object):
                                 prop['color']['b']
                             )
                         else:
-                            _LOGGER.warn(f'unknown state property {prop}')
+                            _LOGGER.warning(f'unknown state property {prop}')
 
                     result = GoveeDeviceState(
                         device = json_obj["data"]["device"],
@@ -466,8 +474,9 @@ class Govee(object):
                         source = 'api'
                     )
                     self._states[result.device] = result
+                    _LOGGER.debug(f'state returned from API: {json_obj}, resulting state object: {result}')
                 else:
                     errText = await response.text()
-                    err = f'API-Error {response.status}: {result}'
+                    err = f'API-Error {response.status}: {errText}'
         return result, err
 
