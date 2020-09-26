@@ -30,18 +30,13 @@ class GoveeDevice(object):
     support_brightness: bool
     support_color: bool
     support_color_tem: bool
-    
-@dataclass
-class GoveeDeviceState(object):
-    """ State of a Govee Device DTO """
-    device: str
-    model: str
     online: bool
     power_state: bool
     brightness: int
     color: Tuple[ int, int, int ]
     timestamp: int
     source: str
+    error: str
 
 class Govee(object):
     """ client to connect to the govee API """
@@ -61,7 +56,6 @@ class Govee(object):
         """ init with an API_KEY """
         self._api_key = api_key
         self._devices = {}
-        self._states = {}
         self._rate_limit_on = 5 # safe available call count for multiple processes
         self._limit = 100
         self._limit_remaining = 100
@@ -101,7 +95,7 @@ class Govee(object):
                 self._limit_reset = float(response.headers[_RATELIMIT_RESET])
                 _LOGGER.debug(f'Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds')
                 limit_unknown = False
-            except ex:
+            except Exception as ex:
                 _LOGGER.warning(f'Error trying to set rate limits: {ex}')
         if limit_unknown:
             self._limit_remaining = 0
@@ -146,33 +140,23 @@ class Govee(object):
         self._rate_limit_on = val
     
     @property
-    def devices(self):
+    def devices(self) -> List[GoveeDevice]:
         """ returns the cached devices list """
         lst = []
         for dev in self._devices:
             lst.append(self._devices[dev])
         return lst
     
-    @property
-    def states(self):
-        """ returns the cached states list """
-        lst = []
-        for dev in self._states:
-            lst.append(self._states[dev])
-        return lst
-    
-    def state(self, device) -> GoveeDeviceState:
-        """ returns the cached state for a device """
-        device_str, device = self._get_device(device)
-        if device_str:
-            return self._states[device_str]
-        return None
+    def device(self, device) -> GoveeDevice:
+        """ returns the cached device """
+        _, device = self._get_device(device)
+        return device
 
-    async def ping_async(self) -> Tuple[ float, str ]:
+    async def ping(self) -> Tuple[ float, str ]:
         """ Ping the api endpoint. No API_KEY is needed
             Returns: timeout_ms, error
         """
-        _LOGGER.debug("ping_async")
+        _LOGGER.debug("ping")
         start = time.time()
         ping_ok_delay = None
         err = None
@@ -180,7 +164,7 @@ class Govee(object):
         url = (_API_URL + "/ping")
         await self.rate_limit_delay()
         async with self._session.get(url=url) as response:
-            self._track_rate_limit(response)
+            # no rate limit header fields exist on ping
             result = await response.text()
             delay = int((time.time() - start) * 1000)
             if response.status == 200:
@@ -193,12 +177,10 @@ class Govee(object):
                 err = f'API-Error {response.status}: {result}'
         return ping_ok_delay, err
         
-            
     async def get_devices(self) -> Tuple[ List[GoveeDevice], str ]:
         """ get and cache devices, returns: list, error """
         _LOGGER.debug("get_devices")
         devices = {}
-        states = {}
         err = None
         
         url = (
@@ -224,24 +206,21 @@ class Govee(object):
                         support_turn = "turn" in item["supportCmds"],
                         support_brightness = "brightness" in item["supportCmds"],
                         support_color = "color" in item["supportCmds"],
-                        support_color_tem = "colorTem" in item["supportCmds"]
-                    )
-                    states[item["device"]] = GoveeDeviceState(
-                        device = item["device"],
-                        model = item["model"],
+                        support_color_tem = "colorTem" in item["supportCmds"],
+                        # defaults for state
                         online = True,
                         power_state = False,
                         brightness = 0,
                         color = (0, 0, 0), 
                         timestamp = timestamp,
-                        source = 'history'
+                        source = 'history',
+                        error = None
                     )
             else:
                 result = await response.text()
                 err = f'API-Error {response.status}: {result}'
         # cache last get_devices result
         self._devices = devices
-        self._states = states
         return self.devices, err
 
 
@@ -281,9 +260,9 @@ class Govee(object):
             if not err:
                 success = self._is_success_result_message(result)
                 if success:
-                    self._states[device_str].timestamp = self._utcnow
-                    self._states[device_str].source = 'history'
-                    self._states[device_str].power_state = onOff == "on"
+                    self._devices[device_str].timestamp = self._utcnow
+                    self._devices[device_str].source = 'history'
+                    self._devices[device_str].power_state = onOff == "on"
         return success, err
 
     async def set_brightness(self, device: Union[str, GoveeDevice], brightness: int) -> Tuple[ bool, str ]:
@@ -307,9 +286,9 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._states[device_str].timestamp = self._utcnow
-                        self._states[device_str].source = 'history'
-                        self._states[device_str].brightness = brightness
+                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].source = 'history'
+                        self._devices[device_str].brightness = brightness
         return success, err
 
     async def set_color_temp(self, device: Union[str, GoveeDevice], color_temp: int) -> Tuple[ bool, str ]:
@@ -328,9 +307,9 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._states[device_str].timestamp = self._utcnow
-                        self._states[device_str].source = 'history'
-                        self._states[device_str].color_temp = color_temp
+                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].source = 'history'
+                        self._devices[device_str].color_temp = color_temp
         return success, err
 
     async def set_color(self, device: Union[str, GoveeDevice], color: Tuple[ int, int, int ]) -> Tuple[ bool, str ]:
@@ -360,9 +339,9 @@ class Govee(object):
                     if not err:
                         success = self._is_success_result_message(result)
                         if success:
-                            self._states[device_str].timestamp = self._utcnow
-                            self._states[device_str].source = 'history'
-                            self._states[device_str].color = color
+                            self._devices[device_str].timestamp = self._utcnow
+                            self._devices[device_str].source = 'history'
+                            self._devices[device_str].color = color
         return success, err
 
     async def _control(self, device: Union[str, GoveeDevice], command: str, params: Any) -> Tuple[ Any, str ]:
@@ -406,21 +385,31 @@ class Govee(object):
                         err = f'API-Error {response.status} on command {cmd}: {text} for device {device}'
         return result, err
 
-    async def get_state(self, device: Union[str, GoveeDevice]) -> Tuple[ GoveeDeviceState, str ]:
+    async def get_states(self) -> List[GoveeDevice]:
+        _LOGGER.debug('get_states')
+        for device_str in self._devices:
+            state, err = await self._get_device_state(device_str)
+            if err:
+                self._devices[device_str].error = err
+            else:
+                self._devices[device_str] = state
+                self._devices[device_str].error = None
+        return self.devices
+
+    async def _get_device_state(self, device: Union[str, GoveeDevice]) -> Tuple[ GoveeDevice, str ]:
         device_str, device = self._get_device(device)
-        _LOGGER.debug(f'get_state {device_str}')
         result = None
         err = None
         if not device:
             err = f'Invalid device {device_str}'
         elif not device.retrievable:
             # device {device_str} isn't able to return state, return 'history' state
-            self._states[device_str].source = 'history'
-            result = self._states[device_str]
+            self._devices[device_str].source = 'history'
+            result = self._devices[device_str]
         elif not self._state_request_allowed():
             # we just changed something, return state from history
-            self._states[device_str].source = 'history'
-            result = self._states[device_str]
+            self._devices[device_str].source = 'history'
+            result = self._devices[device_str]
             _LOGGER.debug(f'state object returned from cache: {result}')
         else:
             url = (
@@ -463,20 +452,17 @@ class Govee(object):
                         else:
                             _LOGGER.warning(f'unknown state property {prop}')
 
-                    result = GoveeDeviceState(
-                        device = json_obj["data"]["device"],
-                        model = json_obj["data"]["model"],
-                        online = prop_online,
-                        power_state = prop_power_state,
-                        brightness = prop_brightness,
-                        color = prop_color, 
-                        timestamp = timestamp,
-                        source = 'api'
-                    )
-                    self._states[result.device] = result
+                    result = self._devices[device_str]
+                    result.online = prop_online
+                    result.power_state = prop_power_state
+                    result.brightness = prop_brightness
+                    result.color = prop_color
+                    result.timestamp = timestamp
+                    result.source = 'api'
+                    result.error = None
+
                     _LOGGER.debug(f'state returned from API: {json_obj}, resulting state object: {result}')
                 else:
                     errText = await response.text()
                     err = f'API-Error {response.status}: {errText}'
         return result, err
-

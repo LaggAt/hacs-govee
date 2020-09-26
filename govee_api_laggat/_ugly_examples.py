@@ -1,4 +1,5 @@
 from govee_api_laggat import *
+import sys
 
 if __name__ == '__main__':
     """ some example usages """
@@ -22,7 +23,7 @@ if __name__ == '__main__':
         # show usage with content manager
         async with Govee(api_key) as govee:
             if command=="ping":
-                ping_ms, err = await govee.ping_async()
+                ping_ms, err = await govee.ping()
                 print(f"Ping success? {bool(ping_ms)} after {ping_ms}ms")
             elif command=="devices":
                 print("Devices found: " + ", ".join([
@@ -76,7 +77,7 @@ if __name__ == '__main__':
         # show usage without content manager, but await and close()
         if command=="ping":
             govee = await Govee.create(api_key)
-            ping_ms, err = await govee.ping_async()
+            ping_ms, err = await govee.ping()
             print(f"second Ping success? {bool(ping_ms)} after {ping_ms}ms")
             await govee.close()
 
