@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - According to Govee API-support we could fix jumping back to old state after controlling device, 
   by delaying status request for 2-3 seconds. 
   Status request is answered from cache after any command within two seconds
+- GoveeDevice contains device and state information, GoveeDeviceState is removed
 ### Removed
 - control color by rgb values - not used by home assistant.
 ### Fixed
