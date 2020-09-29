@@ -285,6 +285,7 @@ class GoveeTests(TestCase):
         async def getDevices():
             async with Govee(_API_KEY) as govee:
                 result, err = await govee.get_devices()
+                assert not err
                 cache = govee.devices
                 return result, cache
         result, cache = loop.run_until_complete(getDevices())
