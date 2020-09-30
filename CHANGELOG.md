@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by delaying status request for 2-3 seconds. 
   Status request is answered from cache after any command within two seconds
 - GoveeDevice contains device and state information, GoveeDeviceState is removed
+- Brightness is setting Power_State now in cached state
 ### Removed
 - control color by rgb values - not used by home assistant.
 ### Fixed
