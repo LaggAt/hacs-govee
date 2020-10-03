@@ -1,13 +1,14 @@
 """ client to connect to the govee API """
 
-import sys
-import logging
-import time
-from datetime import datetime
-import asyncio
+from .learning_storage import GoveeAbstractLearningStorage, GoveeLearnedInfo
 import aiohttp
+import asyncio
 from dataclasses import dataclass
-from typing import List, Tuple, Union, Any
+from datetime import datetime
+import logging
+import sys
+import time
+from typing import List, Tuple, Union, Optional, Any
 
 _LOGGER = logging.getLogger(__name__)
 _API_URL = "https://developer-api.govee.com"
@@ -37,7 +38,11 @@ class GoveeDevice(object):
     timestamp: int
     source: str
     error: str
-
+    lock_set_until: int
+    lock_get_until: int
+    learned_set_brightness_max: int
+    learned_get_brightness_max: int
+    
 class Govee(object):
     """ client to connect to the govee API """
 
@@ -52,7 +57,9 @@ class Govee(object):
             await self._session.close()
         self._session = None
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, 
+            learning_storage: Optional[GoveeAbstractLearningStorage] = None
+        ):
         """ init with an API_KEY """
         self._api_key = api_key
         self._devices = {}
@@ -61,10 +68,18 @@ class Govee(object):
         self._limit_remaining = 100
         self._limit_reset = 0
         self._no_state_before = 0
+        self._learning_storage = learning_storage
+        if not self._learning_storage:
+            # use an internal learning storage as long as we run.
+            # we will need to re-learn every time again.
+            self._learning_storage = GoveeAbstractLearningStorage()
+
         
     @classmethod
-    async def create(cls, api_key: str):
-        self = Govee(api_key)
+    async def create(cls, api_key: str, *, 
+            learning_storage: Optional[GoveeAbstractLearningStorage] = None
+        ):
+        self = Govee(api_key, learning_storage=learning_storage)
         await self.__aenter__()
         return self
     
@@ -195,9 +210,24 @@ class Govee(object):
                 result = await response.json()
                 timestamp = self._utcnow()
                 
+                learning_infos = await self._learning_storage._read_cached()
+
                 for item in result["data"]["devices"]:
-                    devices[item["device"]] = GoveeDevice(
-                        device = item["device"],
+                    device_str = item["device"]
+
+                    # assuming max values for control and feedback of brightness
+                    learned_set_brightness_max = 254  # if it fails > 100, lower to 100
+                    learned_get_brightness_max = 100  # if a result > 100, raise to 254
+                    if device_str in learning_infos:
+                        learning_info = learning_infos[device_str]
+                        learned_set_brightness_max = learning_info.set_brightness_max
+                        learned_get_brightness_max = learning_info.get_brightness_max
+                    if not item["retrievable"]:
+                        learned_get_brightness_max = None
+
+                    # create device DTO
+                    devices[device_str] = GoveeDevice(
+                        device = device_str,
                         model = item["model"],
                         device_name = item["deviceName"],
                         controllable = item["controllable"],
@@ -214,7 +244,11 @@ class Govee(object):
                         color = (0, 0, 0), 
                         timestamp = timestamp,
                         source = 'history',
-                        error = None
+                        error = None,
+                        lock_set_until = 0,
+                        lock_get_until = 0,
+                        learned_set_brightness_max = learned_set_brightness_max,
+                        learned_get_brightness_max = learned_get_brightness_max,
                     )
             else:
                 result = await response.text()
@@ -278,11 +312,21 @@ class Govee(object):
             else:
                 # set brightness as 0..254
                 brightness_set = brightness
-                if device.model not in BRIGHTNESS_254_MODELS:
+                brightness_set_100 = brightness * 100 // 254
+                if device.learned_set_brightness_max == 100:
                     # set brightness as 0..100
-                    brightness_set = brightness * 100 // 254
+                    brightness_set = brightness_set_100
                 command = "brightness"
                 result, err = await self._control(device, command, brightness_set)
+                if err:
+                    if device.learned_set_brightness_max == 254 and "API-Error 400" in err:
+                        # set brightness as 0..100 as 0..254 didn't work
+                        brightness_set = brightness_set_100
+                        result, err = await self._control(device, command, brightness_set)
+                        if not err:
+                            # if that worked, remember it
+                            device.learned_set_brightness_max = 100
+                            await self._learn(device)
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
@@ -291,6 +335,17 @@ class Govee(object):
                         self._devices[device_str].brightness = brightness
                         self._devices[device_str].power_state = brightness == 0
         return success, err
+
+    async def _learn(self, device):
+        """Persist learned information from device DTO."""
+        learning_infos = await self._learning_storage._read_cached()
+        if learning_infos == None:
+            learning_infos = {}
+        learning_infos[device.device] = GoveeLearnedInfo(
+            set_brightness_max = device.learned_set_brightness_max,
+            get_brightness_max = device.learned_get_brightness_max,
+        )        
+        await self._learning_storage._write_cached(learning_infos)
 
     async def set_color_temp(self, device: Union[str, GoveeDevice], color_temp: int) -> Tuple[ bool, str ]:
         """ set color temperature to 2000 .. 9000 """
