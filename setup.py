@@ -9,7 +9,7 @@ INSTALL_REQUIRES = [
 
 setuptools.setup(
     name="govee_api_laggat",
-    version="0.1.11",
+    version="0.1.16",
     author="Florian Lagg @LaggAt",
     author_email="florian.lagg@gmail.com",
     description="Implementation of the govee API to control LED strips and bulbs.",
@@ -22,6 +22,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.7',
     install_requires=INSTALL_REQUIRES
 )
