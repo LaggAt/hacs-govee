@@ -334,6 +334,7 @@ class Govee(object):
     async def _learn(self, device):
         """Persist learned information from device DTO."""
         learning_infos: Dict[str, GoveeLearnedInfo] = await self._learning_storage._read_cached()
+        changed = False
         # init Dict and entry for device
         if learning_infos == None:
             learning_infos = {}
@@ -343,13 +344,16 @@ class Govee(object):
         if learning_infos[device.device].set_brightness_max != device.learned_set_brightness_max:
             _LOGGER.debug("learned device %s uses range 0-%s for setting brightness.", device.device, device.learned_set_brightness_max)
             learning_infos[device.device].set_brightness_max = device.learned_set_brightness_max
+            changed = True
         if learning_infos[device.device].get_brightness_max != device.learned_get_brightness_max:
             _LOGGER.debug("learned device %s uses range 0-%s for getting brightness state.", device.device, device.learned_get_brightness_max)
             if device.learned_get_brightness_max == 100:
                 _LOGGER.info("brightness range for %s is assumed. If the brightness slider doesn't match the actual brightness pull the brightness up to max once.", device.device)
+            changed = True
             learning_infos[device.device].get_brightness_max = device.learned_get_brightness_max
         
-        await self._learning_storage._write_cached(learning_infos)
+        if changed:
+            await self._learning_storage._write_cached(learning_infos)
 
     async def set_color_temp(self, device: Union[str, GoveeDevice], color_temp: int) -> Tuple[ bool, str ]:
         """ set color temperature to 2000 .. 9000."""
