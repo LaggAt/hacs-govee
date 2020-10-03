@@ -105,11 +105,9 @@ class Govee(object):
                 _LOGGER.debug(f'Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds')
                 limit_unknown = False
             except Exception as ex:
-                _LOGGER.warning(f'Error trying to set rate limits: {ex}')
+                _LOGGER.warning(f'Error trying to get rate limits: {ex}')
         if limit_unknown:
-            self._limit_remaining = 0
-            self._limit_reset = float(self._utcnow() + 5)
-            _LOGGER.warning(f'Rate limits are unknown, next request is 5 seconds delayed, response headers: {response.headers}')
+            self._limit_remaining -= 1
 
     async def rate_limit_delay(self):
         # do we have requests left?
