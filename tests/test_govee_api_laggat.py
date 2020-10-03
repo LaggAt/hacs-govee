@@ -326,11 +326,9 @@ class GoveeTests(TestCase):
         assert success == True
 
     @patch('aiohttp.ClientSession.get')
-    @patch('govee_api_laggat.Govee._state_request_allowed')
-    def test_get_states(self, mock_state_request_allowed, mock_get):
+    def test_get_states(self, mock_get):
         # arrange
         loop = asyncio.get_event_loop()
-        mock_state_request_allowed.return_value = True # always get live state
         mock_get.return_value.__aenter__.return_value.status = 200
         mock_get.return_value.__aenter__.return_value.json = CoroutineMock(
             return_value=JSON_DEVICE_STATE
@@ -358,7 +356,6 @@ class GoveeTests(TestCase):
         DUMMY_DEVICE_H6163.timestamp = states[0].timestamp
         assert states[0] == DUMMY_DEVICE_H6163
         assert states[1] == DUMMY_DEVICE_H6104
-        assert mock_state_request_allowed.call_count == 1
 
     @patch('aiohttp.ClientSession.put')
     def test_set_brightness_to_high(self, mock_put):

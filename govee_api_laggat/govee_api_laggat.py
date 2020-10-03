@@ -16,8 +16,9 @@ _API_URL = "https://developer-api.govee.com"
 _RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
-BRIGHTNESS_254_MODELS = [] # maybe these? support asked: ["H6089","H7022","H6086","H6135","H6137","H7005","H6002","H6003"]
 
+# return state from hisory for n seconds after controlling the device
+DELAY_GET_FOLLOWING_SET_SECONDS = 2
 @dataclass
 class GoveeDevice(object):
     """ Govee Device DTO """
@@ -67,7 +68,6 @@ class Govee(object):
         self._limit = 100
         self._limit_remaining = 100
         self._limit_reset = 0
-        self._no_state_before = 0
         self._learning_storage = learning_storage
         if not self._learning_storage:
             # use an internal learning storage as long as we run.
@@ -91,12 +91,6 @@ class Govee(object):
 
     def _utcnow(self):
         return datetime.timestamp(datetime.now())
-
-    def _no_state_request_next_seconds(self, sec: int):
-        self._no_state_before = self._utcnow() + sec
-    
-    def _state_request_allowed(self) -> bool:
-        return self._no_state_before < self._utcnow()
 
     def _track_rate_limit(self, response):
         """ rate limiting information """
@@ -206,7 +200,6 @@ class Govee(object):
         async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
             self._track_rate_limit(response)
             if response.status == 200:
-                self._no_state_request_next_seconds(2)
                 result = await response.json()
                 timestamp = self._utcnow()
                 
@@ -413,6 +406,12 @@ class Govee(object):
                             self._devices[device_str].color = color
         return success, err
 
+    def _get_lock_seconds(self, utcSeconds: int) -> int:
+        seconds_lock = utcSeconds - self._utcnow()
+        if(seconds_lock < 0):
+            seconds_lock = 0
+        return seconds_lock
+
     async def _control(self, device: Union[str, GoveeDevice], command: str, params: Any) -> Tuple[ Any, str ]:
         device_str, device = self._get_device(device)
         cmd = {
@@ -425,8 +424,11 @@ class Govee(object):
         if not device:
             err = f'Invalid device {device_str}, {device}'
         else:
+            seconds_locked = self._get_lock_seconds(device.lock_set_until)
             if not device.controllable:
                 err = f'Device {device.device} is not controllable'
+            elif seconds_locked:
+                err = f'Device {device.device} is locked for control next {sec} seconds'
             elif not command in device.support_cmds:
                 err = f'Command {command} not possible on device {device.device}'
             else:
@@ -447,7 +449,7 @@ class Govee(object):
                 ) as response:
                     self._track_rate_limit(response)
                     if response.status == 200:
-                        self._no_state_request_next_seconds(2)
+                        device.lock_get_until = self._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
                         result = await response.json()
                     else:
                         text = await response.text()
@@ -469,17 +471,18 @@ class Govee(object):
         device_str, device = self._get_device(device)
         result = None
         err = None
+        seconds_locked = self._get_lock_seconds(device.lock_get_until)
         if not device:
             err = f'Invalid device {device_str}'
         elif not device.retrievable:
             # device {device_str} isn't able to return state, return 'history' state
             self._devices[device_str].source = 'history'
             result = self._devices[device_str]
-        # elif not self._state_request_allowed():
-        #     # we just changed something, return state from history
-        #     self._devices[device_str].source = 'history'
-        #     result = self._devices[device_str]
-        #     _LOGGER.debug(f'state object returned from cache: {result}')
+        elif seconds_locked:
+            # we just changed something, return state from history
+            self._devices[device_str].source = 'history'
+            result = self._devices[device_str]
+            _LOGGER.debug(f'state object returned from cache: {result}, next state for {device.device} from api allowed in {seconds_locked} seconds')
         else:
             url = (
                 _API_URL

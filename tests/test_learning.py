@@ -55,8 +55,15 @@ def mock_aiohttp(monkeypatch):
     monkeypatch.setattr('aiohttp.ClientSession.get', mock_aiohttp_request)
     monkeypatch.setattr('aiohttp.ClientSession.put', mock_aiohttp_request)
 
+def mock_never_lock_result(self, *args, **kwargs):
+    return 0
+
+@pytest.fixture
+def mock_never_lock(monkeypatch):
+    monkeypatch.setattr('govee_api_laggat.Govee._get_lock_seconds', mock_never_lock_result)
+
 @pytest.mark.asyncio
-async def test_autobrightness_restore_saved_values(mock_aiohttp):
+async def test_autobrightness_restore_saved_values(mock_aiohttp, mock_never_lock):
     # arrange
     learning_storage = LearningStorage(copy.deepcopy(LEARNED_S100_G254))
 
@@ -83,7 +90,7 @@ async def test_autobrightness_restore_saved_values(mock_aiohttp):
         assert learning_storage.write_call_count == 0
 
 @pytest.mark.asyncio
-async def test_autobrightness_set100_get254(mock_aiohttp):
+async def test_autobrightness_set100_get254(mock_aiohttp, mock_never_lock):
     # arrange
     learning_storage = LearningStorage(copy.deepcopy(LEARNED_NOTHING))
 
@@ -150,7 +157,7 @@ async def test_autobrightness_set100_get254(mock_aiohttp):
         }
 
 @pytest.mark.asyncio
-async def test_autobrightness_set254_get100_get254(mock_aiohttp):
+async def test_autobrightness_set254_get100_get254(mock_aiohttp, mock_never_lock):
     # arrange
     learning_storage = LearningStorage(copy.deepcopy(LEARNED_NOTHING))
 
