@@ -1,14 +1,14 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 import logging
-from typing import Dict, Any
+from typing import Dict, Optional, Any
 
 _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class GoveeLearnedInfo:
-    set_brightness_max: int = 0
-    get_brightness_max: int = 0
+    set_brightness_max: Optional[int] = None
+    get_brightness_max: Optional[int] = None
 
 class GoveeAbstractLearningStorage(object):
     """Abstract class used for loading and storing of learning information."""

@@ -216,14 +216,14 @@ class Govee(object):
                     device_str = item["device"]
 
                     # assuming max values for control and feedback of brightness
-                    learned_set_brightness_max = 254  # if it fails > 100, lower to 100
-                    learned_get_brightness_max = 100  # if a result > 100, raise to 254
+                    learned_set_brightness_max = None
+                    learned_get_brightness_max = None
                     if device_str in learning_infos:
                         learning_info = learning_infos[device_str]
                         learned_set_brightness_max = learning_info.set_brightness_max
                         learned_get_brightness_max = learning_info.get_brightness_max
                     if not item["retrievable"]:
-                        learned_get_brightness_max = None
+                        learned_get_brightness_max = -1
 
                     # create device DTO
                     devices[device_str] = GoveeDevice(
@@ -319,14 +319,18 @@ class Govee(object):
                 command = "brightness"
                 result, err = await self._control(device, command, brightness_set)
                 if err:
-                    if device.learned_set_brightness_max == 254 and "API-Error 400" in err:
+                    # try again with 0-100 range
+                    if device.learned_set_brightness_max == None and "API-Error 400" in err:
                         # set brightness as 0..100 as 0..254 didn't work
                         brightness_set = brightness_set_100
                         result, err = await self._control(device, command, brightness_set)
                         if not err:
-                            # if that worked, remember it
                             device.learned_set_brightness_max = 100
                             await self._learn(device)
+                else:
+                    device.learned_set_brightness_max = 254
+                    await self._learn(device)
+
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
@@ -338,17 +342,26 @@ class Govee(object):
 
     async def _learn(self, device):
         """Persist learned information from device DTO."""
-        learning_infos = await self._learning_storage._read_cached()
+        learning_infos: Dict[str, GoveeLearnedInfo] = await self._learning_storage._read_cached()
+        # init Dict and entry for device
         if learning_infos == None:
             learning_infos = {}
-        learning_infos[device.device] = GoveeLearnedInfo(
-            set_brightness_max = device.learned_set_brightness_max,
-            get_brightness_max = device.learned_get_brightness_max,
-        )        
+        if device.device not in learning_infos:
+            learning_infos[device.device] = GoveeLearnedInfo()
+        # output what was lerned, and learn
+        if learning_infos[device.device].set_brightness_max != device.learned_set_brightness_max:
+            _LOGGER.debug("learned device %s uses range 0-%s for setting brightness.", device.device, device.learned_set_brightness_max)
+            learning_infos[device.device].set_brightness_max = device.learned_set_brightness_max
+        if learning_infos[device.device].get_brightness_max != device.learned_get_brightness_max:
+            _LOGGER.debug("learned device %s uses range 0-%s for getting brightness state.", device.device, device.learned_get_brightness_max)
+            if device.learned_get_brightness_max == 100:
+                _LOGGER.info("brightness range for %s is assumed. If the brightness slider doesn't match the actual brightness pull the brightness up to max once.", device.device)
+            learning_infos[device.device].get_brightness_max = device.learned_get_brightness_max
+        
         await self._learning_storage._write_cached(learning_infos)
 
     async def set_color_temp(self, device: Union[str, GoveeDevice], color_temp: int) -> Tuple[ bool, str ]:
-        """ set color temperature to 2000 .. 9000 """
+        """ set color temperature to 2000 .. 9000."""
         success = False
         err = None
         device_str, device = self._get_device(device)
@@ -462,11 +475,11 @@ class Govee(object):
             # device {device_str} isn't able to return state, return 'history' state
             self._devices[device_str].source = 'history'
             result = self._devices[device_str]
-        elif not self._state_request_allowed():
-            # we just changed something, return state from history
-            self._devices[device_str].source = 'history'
-            result = self._devices[device_str]
-            _LOGGER.debug(f'state object returned from cache: {result}')
+        # elif not self._state_request_allowed():
+        #     # we just changed something, return state from history
+        #     self._devices[device_str].source = 'history'
+        #     result = self._devices[device_str]
+        #     _LOGGER.debug(f'state object returned from cache: {result}')
         else:
             url = (
                 _API_URL
@@ -507,6 +520,20 @@ class Govee(object):
                             )
                         else:
                             _LOGGER.warning(f'unknown state property {prop}')
+
+                    #autobrightness learning
+                    if device.learned_get_brightness_max == None \
+                        or ( \
+                            device.learned_get_brightness_max == 100 \
+                            and prop_brightness > 100 \
+                        ):
+                        device.learned_get_brightness_max = 100  # assumption, as we didn't get anything higher
+                        if prop_brightness > 100:
+                            device.learned_get_brightness_max = 254
+                        await self._learn(device)
+                    if device.learned_get_brightness_max == 100:
+                        # scale range 0-100 up to 0-254
+                        prop_brightness = prop_brightness * 254 // 100
 
                     result = self._devices[device_str]
                     result.online = prop_online

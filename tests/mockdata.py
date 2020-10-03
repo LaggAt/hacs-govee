@@ -1,5 +1,6 @@
 import copy
-from govee_api_laggat import GoveeDevice
+from govee_api_laggat import GoveeDevice, GoveeLearnedInfo
+import queue
 
 API_URL = "https://developer-api.govee.com"
 API_KEY = "SUPER_SECRET_KEY"
@@ -135,8 +136,57 @@ def JSON_DEVICE_STATE_WITH_BRIGHTNESS(brightness):
     val["data"]["properties"][2]['brightness'] = brightness
     return val
                 
+# API rate limit header keys
+_RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're permitted to make per minute.
+_RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
+_RATELIMIT_RESET = 'Rate-Limit-Reset' # The time at which the current rate limit window resets in UTC epoch seconds.
 
 
+# aiohttp mocking (monkeypatch)
+class MockAiohttpResponse:
+    def __init__(self, *, status = 200, json = None, text = None,
+        check_kwargs = lambda kwargs : True
+    ):
+        self._status = status
+        self._json = json
+        self._text = text
+        self._check_kwargs = check_kwargs
+        
+    def check_kwargs(self, kwargs):
+        ok = self._check_kwargs(kwargs)
+        if not ok:
+            raise Exception(f"kwargs '{kwargs}' not ok, checked by lambda: '{self._check_kwargs}'")
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *error_info):
+        return self
+
+    @property
+    def headers(self):
+        h = {
+            _RATELIMIT_TOTAL: 100,
+            _RATELIMIT_REMAINING: 100,
+            _RATELIMIT_RESET: 0
+        }
+        return h
+
+    @property
+    def status(self):
+        return self._status
+
+    async def json(self):
+        return self._json
+
+    async def text(self):
+        return self._text
 
 # learning infos
 LEARNED_NOTHING = {}
+LEARNED_S100_G254 = {
+    JSON_DEVICE_H6163['device']: GoveeLearnedInfo(
+        get_brightness_max = 254,
+        set_brightness_max = 100,
+    )
+}
