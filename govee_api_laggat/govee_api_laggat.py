@@ -311,7 +311,7 @@ class Govee(object):
                 result, err = await self._control(device, command, brightness_set)
                 if err:
                     # try again with 0-100 range
-                    if device.learned_set_brightness_max == None and "API-Error 400" in err:
+                    if "API-Error 400" in err:  # Unsupported Cmd Value
                         # set brightness as 0..100 as 0..254 didn't work
                         brightness_set = brightness_set_100
                         result, err = await self._control(device, command, brightness_set)
