@@ -330,7 +330,7 @@ class Govee(object):
                         self._devices[device_str].timestamp = self._utcnow
                         self._devices[device_str].source = 'history'
                         self._devices[device_str].brightness = brightness
-                        self._devices[device_str].power_state = brightness == 0
+                        self._devices[device_str].power_state = brightness > 0
         return success, err
 
     async def _learn(self, device):

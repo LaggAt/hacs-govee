@@ -408,8 +408,9 @@ class GoveeTests(TestCase):
             async with Govee(API_KEY) as govee:
                 # inject a device for testing
                 govee._devices = {DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163}
-                return await govee.set_brightness(DUMMY_DEVICE_H6163.device, 42)
-        success, err = loop.run_until_complete(set_brightness())
+                success, err = await govee.set_brightness(DUMMY_DEVICE_H6163.device, 42)
+                return success, err, govee.devices
+        success, err, devices = loop.run_until_complete(set_brightness())
         # assert
         assert err == None
         assert mock_put.call_count == 1
@@ -424,6 +425,7 @@ class GoveeTests(TestCase):
                 "value": 42 * 100 // 254  # we need to control brightness betweenn 0 .. 100
             }
         }
+        assert devices[0].power_state == True
         assert success == True
 
     @patch('aiohttp.ClientSession.put')
