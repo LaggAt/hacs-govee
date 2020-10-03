@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - debug log contains rate limiting information
 ### Changed
 - Setting brightness is different on different devices. Most devices use a Range of 0-100, some use 0-254.
-  Default in this client is 0..100, please tell me when we find models which you can only set to 40% brightness to add them to a list.
+  ~~Default in this client is 0..100, please tell me when we find models which you can only set to 40% brightness to add them to a list.~~
+  The ranges for setting and getting brightness from the api are learned now. If you implement this package override GoveeAbstractLearningStorage (as in tests) to save/restore learned information on restarts.
 - According to Govee API-support we could fix jumping back to old state after controlling device, 
   by delaying status request for 2-3 seconds. 
   Status request is answered from cache after any command within two seconds
