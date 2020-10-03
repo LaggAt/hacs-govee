@@ -1,6 +1,6 @@
 """ client to connect to the govee API """
 
-from .learning_storage import GoveeAbstractLearningStorage, GoveeLearnedInfo
+from govee_api_laggat.learning_storage import GoveeAbstractLearningStorage, GoveeLearnedInfo
 import aiohttp
 import asyncio
 from dataclasses import dataclass
