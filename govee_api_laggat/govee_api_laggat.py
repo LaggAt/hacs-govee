@@ -105,11 +105,9 @@ class Govee(object):
                 _LOGGER.debug(f'Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds')
                 limit_unknown = False
             except Exception as ex:
-                _LOGGER.warning(f'Error trying to set rate limits: {ex}')
+                _LOGGER.warning(f'Error trying to get rate limits: {ex}')
         if limit_unknown:
-            self._limit_remaining = 0
-            self._limit_reset = float(self._utcnow() + 5)
-            _LOGGER.warning(f'Rate limits are unknown, next request is 5 seconds delayed, response headers: {response.headers}')
+            self._limit_remaining -= 1
 
     async def rate_limit_delay(self):
         # do we have requests left?
@@ -313,7 +311,7 @@ class Govee(object):
                 result, err = await self._control(device, command, brightness_set)
                 if err:
                     # try again with 0-100 range
-                    if device.learned_set_brightness_max == None and "API-Error 400" in err:
+                    if "API-Error 400" in err:  # Unsupported Cmd Value
                         # set brightness as 0..100 as 0..254 didn't work
                         brightness_set = brightness_set_100
                         result, err = await self._control(device, command, brightness_set)
@@ -330,7 +328,7 @@ class Govee(object):
                         self._devices[device_str].timestamp = self._utcnow
                         self._devices[device_str].source = 'history'
                         self._devices[device_str].brightness = brightness
-                        self._devices[device_str].power_state = brightness == 0
+                        self._devices[device_str].power_state = brightness > 0
         return success, err
 
     async def _learn(self, device):
