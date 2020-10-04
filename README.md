@@ -54,12 +54,12 @@ async with Govee(api_key, learning_storage = your_learning_storage) as govee:
 
 
 ### without async content manager:
-govee = await Govee.create(api_key, learning_storage = YourStorage)
+govee = await Govee.create(api_key, learning_storage = your_learning_storage)
 ping_ms, err = await govee.ping()  # all commands as above
 print(f"second Ping success? {bool(ping_ms)} after {ping_ms}ms")
 await govee.close()
 
-### so what is that: learning_storage = YourStorage
+### so what is that: learning_storage = your_learning_storage
 # as we control led strips and get state values from them we also learn how a specific led strip behaves.
 # e.g. if the brightness is set in a range from 0-254 or 0-100, as some models use this or the other range.
 # no configuration is needed from your user, but you as developer should consider saving/restoring those values.
