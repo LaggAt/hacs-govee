@@ -319,8 +319,9 @@ class Govee(object):
                             device.learned_set_brightness_max = 100
                             await self._learn(device)
                 else:
-                    device.learned_set_brightness_max = 254
-                    await self._learn(device)
+                    if brightness_set > 100:
+                        device.learned_set_brightness_max = 254
+                        await self._learn(device)
 
                 if not err:
                     success = self._is_success_result_message(result)
