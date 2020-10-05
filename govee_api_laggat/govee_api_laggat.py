@@ -3,6 +3,7 @@
 from govee_api_laggat.learning_storage import GoveeAbstractLearningStorage, GoveeLearnedInfo
 import aiohttp
 import asyncio
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -11,7 +12,11 @@ import time
 from typing import List, Tuple, Union, Optional, Any
 
 _LOGGER = logging.getLogger(__name__)
-_API_URL = "https://developer-api.govee.com"
+_API_BASE_URL = "https://developer-api.govee.com"
+_API_PING = _API_BASE_URL + "/ping"
+_API_DEVICES = _API_BASE_URL + "/v1/devices"
+_API_DEVICES_CONTROL = _API_BASE_URL + "/v1/devices/control"
+_API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
 # API rate limit header keys
 _RATELIMIT_TOTAL = 'Rate-Limit-Total' # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = 'Rate-Limit-Remaining' # The number of requests remaining in the current rate limit window.
@@ -43,7 +48,13 @@ class GoveeDevice(object):
     lock_get_until: int
     learned_set_brightness_max: int
     learned_get_brightness_max: int
-    
+
+class GoveeError(Exception):
+    """Base Exception thrown from govee_api_laggat."""
+
+class GoveeDeviceNotFound(GoveeError):
+    """Raised when a device isn't registered."""
+
 class Govee(object):
     """ client to connect to the govee API """
 
@@ -62,6 +73,7 @@ class Govee(object):
             learning_storage: Optional[GoveeAbstractLearningStorage] = None
         ):
         """ init with an API_KEY """
+        self._online = True  # assume we are online
         self._api_key = api_key
         self._devices = {}
         self._rate_limit_on = 5 # safe available call count for multiple processes
@@ -86,8 +98,55 @@ class Govee(object):
     async def close(self):
         await self.__aexit__()
     
-    def _getAuthHeaders(self):
-        return {'Govee-API-Key': self._api_key}
+    def _getHeaders(self, auth: bool):
+        if auth:
+            return {'Govee-API-Key': self._api_key}
+        return {}
+
+    @asynccontextmanager
+    async def _api_put(self, *, auth=True, url: str, json):
+        async with self._api_request_internal(
+            lambda: self._session.put(
+                url=url, 
+                headers = self._getHeaders(auth),
+                json=json
+            )
+        ) as response:
+            yield response
+    
+    @asynccontextmanager
+    async def _api_get(self, *, auth=True, url: str, params=None):
+        async with self._api_request_internal(
+            lambda: self._session.get(
+                url=url,
+                headers = self._getHeaders(auth),
+                params=params
+            )
+        ) as response:
+            yield response
+
+    @asynccontextmanager
+    async def _api_request_internal(self, request_lambda):
+        await self.rate_limit_delay()
+        try:
+            async with request_lambda() as response:
+                self._online = True  # we got something, so we are online
+                self._track_rate_limit(response)
+                # return the async content manager response
+                yield response
+        except aiohttp.ClientError as ex:
+            # we are offline
+            self._online = False
+            # show all devices as offline
+            for device in self.devices:
+                device.online = False
+            class error_response():
+                def __init__(self, err_msg):
+                    self._err_msg = err_msg
+                status = -1
+                async def text(self):
+                    return self._err_msg
+            yield error_response("%s from aiohttp" % ex)
 
     def _utcnow(self):
         return datetime.timestamp(datetime.now())
@@ -141,14 +200,14 @@ class Govee(object):
     @rate_limit_on.setter
     def rate_limit_on(self, val):
         if val > self._limit:
-            raise Exception(f"Rate limiter threshold {val} must be below {self._limit}")
+            raise GoveeError(f"Rate limiter threshold {val} must be below {self._limit}")
         if val < 1:
-            raise Exception(f"Rate limiter threshold {val} must be above 1")
+            raise GoveeError(f"Rate limiter threshold {val} must be above 1")
         self._rate_limit_on = val
     
     @property
     def devices(self) -> List[GoveeDevice]:
-        """ returns the cached devices list """
+        """ return the cached devices list """
         lst = []
         for dev in self._devices:
             lst.append(self._devices[dev])
@@ -158,6 +217,18 @@ class Govee(object):
         """ returns the cached device """
         _, device = self._get_device(device)
         return device
+        
+    @property
+    def online(self):
+        return self._online
+
+    async def check_connection(self) -> bool:
+        try:
+            # this will set self.online
+            await self.ping()
+        except:
+            pass
+        return self.online
 
     async def ping(self) -> Tuple[ float, str ]:
         """ Ping the api endpoint. No API_KEY is needed
@@ -168,10 +239,7 @@ class Govee(object):
         ping_ok_delay = None
         err = None
 
-        url = (_API_URL + "/ping")
-        await self.rate_limit_delay()
-        async with self._session.get(url=url) as response:
-            # no rate limit header fields exist on ping
+        async with self._api_get(url=_API_PING, auth=False) as response:
             result = await response.text()
             delay = int((time.time() - start) * 1000)
             if response.status == 200:
@@ -190,13 +258,7 @@ class Govee(object):
         devices = {}
         err = None
         
-        url = (
-            _API_URL
-            + "/v1/devices"
-        )
-        await self.rate_limit_delay()
-        async with self._session.get(url=url, headers = self._getAuthHeaders()) as response:
-            self._track_rate_limit(response)
+        async with self._api_get(url=_API_DEVICES) as response:
             if response.status == 200:
                 result = await response.json()
                 timestamp = self._utcnow()
@@ -258,6 +320,8 @@ class Govee(object):
                 device = None #disallow unknown devices
         elif isinstance(device, str) and device_str in self._devices:
             device = self._devices[device_str]
+        else:
+            raise GoveeDeviceNotFound(device_str)
         return device_str, device
 
     def _is_success_result_message(self, result) -> bool:
@@ -435,22 +499,16 @@ class Govee(object):
             elif not command in device.support_cmds:
                 err = f'Command {command} not possible on device {device.device}'
             else:
-                url = (
-                    _API_URL
-                    + "/v1/devices/control"
-                )
                 json = {
                     "device": device.device,
                     "model": device.model,
                     "cmd": cmd
                 }
                 await self.rate_limit_delay()
-                async with self._session.put(
-                    url=url, 
-                    headers = self._getAuthHeaders(),
+                async with self._api_put(
+                    url=_API_DEVICES_CONTROL, 
                     json=json
                 ) as response:
-                    self._track_rate_limit(response)
                     if response.status == 200:
                         device.lock_get_until = self._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
                         result = await response.json()
@@ -487,21 +545,14 @@ class Govee(object):
             result = self._devices[device_str]
             _LOGGER.debug(f'state object returned from cache: {result}, next state for {device.device} from api allowed in {seconds_locked} seconds')
         else:
-            url = (
-                _API_URL
-                + "/v1/devices/state"
-            )
             params = {
                 'device': device.device,
                 'model': device.model
             }
-            await self.rate_limit_delay()
-            async with self._session.get(
-                url=url,
-                headers = self._getAuthHeaders(),
+            async with self._api_get(
+                url=_API_DEVICES_STATE,
                 params=params
             ) as response:
-                self._track_rate_limit(response)
                 if response.status == 200:
                     timestamp = self._utcnow()
                     json_obj = await response.json()
