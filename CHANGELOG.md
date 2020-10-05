@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - better tracking of error 429 (rate limit hit)
 - debug log contains full json and object states
 - debug log contains rate limiting information
+- online/offline state for integration, and each individual bulb
 ### Changed
 - Setting brightness is different on different devices. Most devices use a Range of 0-100, some use 0-254.
   ~~Default in this client is 0..100, please tell me when we find models which you can only set to 40% brightness to add them to a list.~~
