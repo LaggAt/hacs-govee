@@ -1,2 +1,3 @@
+"""Version Information."""
 
-VERSION = "0.1.21"
+VERSION = "0.1.26"

@@ -6,6 +6,14 @@
     "justMyCode": false,
     "configurations": [
         {
+            "name": "run /example/readme_example.py",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/example",
+            "program": "./readme_example.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
+            "console": "integratedTerminal"
+        },{
             "name": "create distribution package",
             "type": "python",
             "request": "launch",
