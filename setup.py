@@ -3,9 +3,7 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-INSTALL_REQUIRES = [
-    "aiohttp", "aiohttp[speedups]"
-]
+INSTALL_REQUIRES = ["aiohttp=3.6.2", "aiohttp[speedups]", "events==0.3"]
 
 setuptools.setup(
     name="govee_api_laggat",
@@ -22,6 +20,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
-    install_requires=INSTALL_REQUIRES
+    python_requires=">=3.7",
+    install_requires=INSTALL_REQUIRES,
 )
