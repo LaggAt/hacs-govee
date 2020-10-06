@@ -1,14 +1,16 @@
+import logging
 from abc import abstractmethod
 from dataclasses import dataclass
-import logging
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 _LOGGER = logging.getLogger(__name__)
+
 
 @dataclass
 class GoveeLearnedInfo:
     set_brightness_max: Optional[int] = None
     get_brightness_max: Optional[int] = None
+
 
 class GoveeAbstractLearningStorage(object):
     """Abstract class used for loading and storing of learning information."""
@@ -34,10 +36,14 @@ class GoveeAbstractLearningStorage(object):
     @abstractmethod
     async def read(self) -> Dict[str, GoveeLearnedInfo]:
         """Read the learning information."""
-        _LOGGER.warning("Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties.")
+        _LOGGER.warning(
+            "Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties."
+        )
         return {}
 
     @abstractmethod
     async def write(self, learned_info: Dict[str, GoveeLearnedInfo]):
         """Write updated learning information."""
-        _LOGGER.warning("Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties.")
+        _LOGGER.warning(
+            "Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties."
+        )

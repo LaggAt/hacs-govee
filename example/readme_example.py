@@ -1,15 +1,19 @@
 import argparse
 import asyncio
-from govee_api_laggat import Govee, GoveeAbstractLearningStorage, GoveeLearnedInfo
 from typing import Dict
+
+from govee_api_laggat import Govee, GoveeAbstractLearningStorage, GoveeLearnedInfo
+
 
 async def all_examples(api_key, your_learning_storage):
     ### using as async content manager
-    async with Govee(api_key, learning_storage = your_learning_storage) as govee:
+    async with Govee(api_key, learning_storage=your_learning_storage) as govee:
         # i will explain that learning_storage below.
 
         # check connection: never fails, just tells if we can connect the API. no auth needed.
         online = await govee.check_connection()
+        # you may also register for an event, when api is going offline/online
+        govee.events.online += lambda is_online: print(f"API is online: {is_online}")
         # you may also ask if the client was online the last time it tried to connect:
         last_online_state = govee.online
         # ping endpoint in Govee API (also uses no auth/api_key)
@@ -17,7 +21,9 @@ async def all_examples(api_key, your_learning_storage):
         # get devices list - this is mandatory, you need to successfully get the devices first!
         devices, err = await govee.get_devices()
         # get states
-        devices = await govee.get_states()  # yes, states returns the same object containing device and state info
+        devices = (
+            await govee.get_states()
+        )  # yes, states returns the same object containing device and state info
         # once you have called get_devices() once, you can get this list from cache:
         cache_devices = govee.devices
         # or a specific device from cache
@@ -45,15 +51,15 @@ async def all_examples(api_key, your_learning_storage):
         reset = govee.rate_limit_reset  # ... or more readable:
         reset_seconds = govee.rate_limit_reset_seconds
 
-
     ### without async content manager:
-    govee = await Govee.create(api_key, learning_storage = your_learning_storage)
+    govee = await Govee.create(api_key, learning_storage=your_learning_storage)
     ping_ms, err = await govee.ping()  # all commands as above
     # don't forget the mandatory get_devices!
     devices, err = await govee.get_devices()
     # let's turn off the light at the end
     success, err = await govee.turn_off(cache_device.device)
     await govee.close()
+
 
 ### so what is that: learning_storage = your_learning_storage
 # as we control led strips and get state values from them we also learn how a specific led strip behaves.
@@ -64,23 +70,26 @@ async def all_examples(api_key, your_learning_storage):
 # to make this easy you can just implement GoveeAbstractLearningStorage and override two methods:
 class YourLearningStorage(GoveeAbstractLearningStorage):
     async def read(self) -> Dict[str, GoveeLearnedInfo]:
-        return {}  # get the last saved learning information from disk, database, ... and return it.
+        return (
+            {}
+        )  # get the last saved learning information from disk, database, ... and return it.
+
     async def write(self, learned_info: Dict[str, GoveeLearnedInfo]):
         persist_this_somewhere = learned_info  # save this dictionary to disk
+
+
 # then
 your_learning_storage = YourLearningStorage()
 
 # and your are good to go
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='govee_api_laggat examples')
-    parser.add_argument('--api-key', dest="api_key", type=str, required=True)
+    parser = argparse.ArgumentParser(description="govee_api_laggat examples")
+    parser.add_argument("--api-key", dest="api_key", type=str, required=True)
     args = parser.parse_args()
 
     # going async ...
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(
-            all_examples(args.api_key, your_learning_storage)
-        )
+        loop.run_until_complete(all_examples(args.api_key, your_learning_storage))
     finally:
         loop.close()
