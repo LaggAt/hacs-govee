@@ -157,17 +157,14 @@ class Govee(object):
         await self.rate_limit_delay()
         try:
             async with request_lambda() as response:
-                self._set_online = True  # we got something, so we are online
+                self._set_online(True)  # we got something, so we are online
                 self._track_rate_limit(response)
                 # return the async content manager response
                 yield response
         except aiohttp.ClientError as ex:
             # we are offline
-            self._set_online = False
-            # show all devices as offline
-            for device in self.devices:
-                device.online = False
-
+            self._set_online(False)
+            
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -283,6 +280,10 @@ class Govee(object):
             self._online = online
             # inform about state change
             self.events.online(self._online)
+        if not online:
+            # show all devices as offline
+            for device in self.devices:
+                device.online = False
 
     async def check_connection(self) -> bool:
         """Check connection to API."""
