@@ -7,7 +7,7 @@ INSTALL_REQUIRES = ["aiohttp[speedups]==3.6.2", "events==0.3"]
 
 setuptools.setup(
     name="govee_api_laggat",
-    version="0.1.27",
+    version="0.1.28",
     author="Florian Lagg @LaggAt",
     author_email="florian.lagg@gmail.com",
     description="Implementation of the govee API to control LED strips and bulbs.",
