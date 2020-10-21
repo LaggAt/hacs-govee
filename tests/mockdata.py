@@ -55,6 +55,7 @@ DUMMY_DEVICE_H6163 = GoveeDevice(
     lock_get_until=0,
     learned_set_brightness_max=100,
     learned_get_brightness_max=254,
+    before_set_brightness_turn_on=False
 )
 DUMMY_DEVICE_H6104 = GoveeDevice(
     device=JSON_DEVICE_H6104["device"],
@@ -78,6 +79,7 @@ DUMMY_DEVICE_H6104 = GoveeDevice(
     lock_get_until=0,
     learned_set_brightness_max=254,
     learned_get_brightness_max=None,
+    before_set_brightness_turn_on=False
 )
 DUMMY_DEVICES = {
     DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163,
@@ -158,5 +160,12 @@ LEARNED_S100_G254 = {
     JSON_DEVICE_H6163["device"]: GoveeLearnedInfo(
         get_brightness_max=254,
         set_brightness_max=100,
+    )
+}
+LEARNED_TURN_BEFORE_BRIGHTNESS = {
+    JSON_DEVICE_H6163["device"]: GoveeLearnedInfo(
+        get_brightness_max=100,
+        set_brightness_max=100,
+        before_set_brightness_turn_on=True
     )
 }

@@ -14,6 +14,14 @@
             "args": ["--api-key", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
         },{
+            "name": "run /example/storage_example_yaml.yaml",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/example",
+            "program": "./storage_example_yaml.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
+            "console": "integratedTerminal"
+        },{
             "name": "create distribution package",
             "type": "python",
             "request": "launch",
