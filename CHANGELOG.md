@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - debug log contains rate limiting information
 - online/offline state for integration, and each individual bulb
 - online event firing once when api goes online, offline
+- learning info may configure 'before_set_brightness_turn_on: True', to send a turn_on when setting brightness > 0
+- storage example added for devs
 ### Changed
 - Setting brightness is different on different devices. Most devices use a Range of 0-100, some use 0-254.
   ~~Default in this client is 0..100, please tell me when we find models which you can only set to 40% brightness to add them to a list.~~
@@ -32,12 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Status request is answered from cache after any command within two seconds
 - GoveeDevice contains device and state information, GoveeDeviceState is removed
 - Brightness is setting Power_State now in cached state
+- calculated brightness should be more exact when transforming between ranges 0-254/0-100
+  this should avoid jumping when the real value from api arrives as we set brightness to what we expect from api
 ### Removed
 - control color by rgb values - not used by home assistant.
 ### Fixed
 - When getting State API-Error did return None, instead of the error message
 - brightness was set with 0-254 Values for devices not supporting it
 - Error 429 (hopefully), this error may happen, if other devices use the API from the same IP. It shouldn't happen that often anymore
+
+- Setting brightness to 1 (0-254 Range) did set brightness to 0 (0-100 Range.)
 
 ## [0.0.27] - 2020-09-20
 ### Added

@@ -336,3 +336,122 @@ async def test_autobrightness_set254_get100_get254(mock_aiohttp, mock_never_lock
                 get_brightness_max=254,
             )
         }
+
+@pytest.mark.asyncio
+async def test_turnonbeforebrightness_brightness1_turnonthenbrightness(mock_aiohttp, mock_never_lock):
+    """
+    It's not possible to learn before_set_brightness_turn_on,
+    but you can set this in the learning data.
+    """
+    # arrange
+    learning_storage = LearningStorage(copy.deepcopy(LEARNED_TURN_BEFORE_BRIGHTNESS))
+
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # request devices list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 1
+
+        # set brightness to 1 (minimum for turning on)
+        # this will turn_on first
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    'cmd': {'name': 'turn','value': 'on'}, 
+                    'device': '40:83:FF:FF:FF:FF:FF:FF', 
+                    'model': 'H6163'
+                }
+            )
+        )
+        # then it will set brightness
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    "cmd": {"name": "brightness", "value": 1},
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        success, err = await govee.set_brightness(DUMMY_DEVICE_H6163.device, 1)
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        assert govee.device(DUMMY_DEVICE_H6163.device).power_state == True
+        assert govee.device(DUMMY_DEVICE_H6163.device).brightness == 3
+
+@pytest.mark.asyncio
+async def test_turnonbeforebrightness_brightness0_setbrihtness0(mock_aiohttp, mock_never_lock):
+    """
+    It's not possible to learn before_set_brightness_turn_on,
+    but you can set this in the learning data.
+    Setting brightness to 0 will still only send brightness 0.
+    """
+    # arrange
+    learning_storage = LearningStorage(copy.deepcopy(LEARNED_TURN_BEFORE_BRIGHTNESS))
+
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # request devices list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 1
+
+        # set brightness to 1 (minimum for turning on)
+        # then it will set brightness
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    "cmd": {"name": "brightness", "value": 0},
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        success, err = await govee.set_brightness(DUMMY_DEVICE_H6163.device, 0)
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        assert govee.device(DUMMY_DEVICE_H6163.device).power_state == False
+        assert govee.device(DUMMY_DEVICE_H6163.device).brightness == 0
+
