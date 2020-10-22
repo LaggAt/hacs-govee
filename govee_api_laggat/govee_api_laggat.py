@@ -615,10 +615,13 @@ class Govee(object):
             seconds_locked = self._get_lock_seconds(device.lock_set_until)
             if not device.controllable:
                 err = f"Device {device.device} is not controllable"
+                _LOGGER.debug(f"control {device_str} not possible: {err}")
             elif seconds_locked:
                 err = f"Device {device.device} is locked for control next {sec} seconds"
+                _LOGGER.warning(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
                 err = f"Command {command} not possible on device {device.device}"
+                _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
                 json = {"device": device.device, "model": device.model, "cmd": cmd}
                 await self.rate_limit_delay()
@@ -633,6 +636,7 @@ class Govee(object):
                     else:
                         text = await response.text()
                         err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
+                        _LOGGER.warning(f"control {device_str} not possible: {err}")
         return result, err
 
     async def get_states(self) -> List[GoveeDevice]:
@@ -641,6 +645,9 @@ class Govee(object):
         for device_str in self._devices:
             state, err = await self._get_device_state(device_str)
             if err:
+                _LOGGER.warning("error getting state for device %s: %s",
+                    device_str, err,
+                )
                 self._devices[device_str].error = err
             else:
                 self._devices[device_str] = state
