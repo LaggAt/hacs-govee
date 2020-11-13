@@ -12,6 +12,8 @@ class GoveeLearnedInfo:
     get_brightness_max: Optional[int] = None
     # when True and setting brightness > 0, send a turn_on command first
     before_set_brightness_turn_on: Optional[bool] = False
+    # consider the device OFF when disconnected. Useful when device isn't always powered.
+    config_offline_is_off: Optional[bool] = False
 
 
 class GoveeAbstractLearningStorage(object):
