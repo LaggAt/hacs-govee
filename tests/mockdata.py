@@ -56,7 +56,8 @@ DUMMY_DEVICE_H6163 = GoveeDevice(
     lock_get_until=0,
     learned_set_brightness_max=100,
     learned_get_brightness_max=254,
-    before_set_brightness_turn_on=False
+    before_set_brightness_turn_on=False,
+    config_offline_is_off=False
 )
 DUMMY_DEVICE_H6104 = GoveeDevice(
     device=JSON_DEVICE_H6104["device"],
@@ -81,7 +82,8 @@ DUMMY_DEVICE_H6104 = GoveeDevice(
     lock_get_until=0,
     learned_set_brightness_max=254,
     learned_get_brightness_max=None,
-    before_set_brightness_turn_on=False
+    before_set_brightness_turn_on=False,
+    config_offline_is_off=False
 )
 DUMMY_DEVICES = {
     DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163,
@@ -95,6 +97,22 @@ JSON_DEVICE_STATE = {
         "model": JSON_DEVICE_H6163["model"],
         "properties": [
             {"online": True},
+            {"powerState": "on"},
+            {"brightness": 254},
+            {"color": {"r": 139, "b": 255, "g": 0}},
+        ],
+    },
+    "message": "Success",
+    "code": 200,
+}
+
+# json offline state
+JSON_DEVICE_STATE_OFFLINE = {
+    "data": {
+        "device": JSON_DEVICE_H6163["device"],
+        "model": JSON_DEVICE_H6163["model"],
+        "properties": [
+            {"online": False},
             {"powerState": "on"},
             {"brightness": 254},
             {"color": {"r": 139, "b": 255, "g": 0}},
@@ -169,5 +187,12 @@ LEARNED_TURN_BEFORE_BRIGHTNESS = {
         get_brightness_max=100,
         set_brightness_max=100,
         before_set_brightness_turn_on=True
+    )
+}
+CONFIGURE_OFFLINE_IS_OFF = {
+    JSON_DEVICE_H6163["device"]: GoveeLearnedInfo(
+        get_brightness_max=254,
+        set_brightness_max=100,
+        config_offline_is_off=True,
     )
 }

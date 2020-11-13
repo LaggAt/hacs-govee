@@ -6,6 +6,14 @@
     "justMyCode": false,
     "configurations": [
         {
+            "name": "run /example/turn_on_before_bright.py",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/example",
+            "program": "./turn_on_before_bright.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
+            "console": "integratedTerminal"
+        },{
             "name": "run /example/readme_example.py",
             "type": "python",
             "request": "launch",

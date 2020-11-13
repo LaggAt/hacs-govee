@@ -60,6 +60,7 @@ class GoveeDevice(object):
     learned_set_brightness_max: int
     learned_get_brightness_max: int
     before_set_brightness_turn_on: bool
+    config_offline_is_off: bool
 
 
 class GoveeError(Exception):
@@ -167,9 +168,9 @@ class Govee(object):
         except aiohttp.ClientError as ex:
             # we are offline
             self._set_online(False)
-            err = "error from aiohttp: %s" % ex
+            err = "error from aiohttp: %s" % repr(ex)
         except Exception as ex:
-            err = "unknown error: %s" % ex
+            err = "unknown error: %s" % repr(ex)
         
         if err:
             class error_response:
@@ -343,6 +344,7 @@ class Govee(object):
                     learned_set_brightness_max = None
                     learned_get_brightness_max = None
                     before_set_brightness_turn_on = False
+                    config_offline_is_off = False
                     # defaults by some conditions
                     if not is_retrievable:
                         learned_get_brightness_max = -1
@@ -355,6 +357,7 @@ class Govee(object):
                         learned_set_brightness_max = learning_info.set_brightness_max
                         learned_get_brightness_max = learning_info.get_brightness_max
                         before_set_brightness_turn_on = learning_info.before_set_brightness_turn_on
+                        config_offline_is_off = learning_info.config_offline_is_off
 
                     # create device DTO
                     devices[device_str] = GoveeDevice(
@@ -382,6 +385,7 @@ class Govee(object):
                         learned_set_brightness_max=learned_set_brightness_max,
                         learned_get_brightness_max=learned_get_brightness_max,
                         before_set_brightness_turn_on=before_set_brightness_turn_on,
+                        config_offline_is_off=config_offline_is_off
                     )
             else:
                 result = await response.text()
@@ -455,6 +459,8 @@ class Govee(object):
             else:
                 if brightness > 0 and device.before_set_brightness_turn_on:
                     await self.turn_on(device)
+                    # api doesn't work if we don't sleep
+                    await asyncio.sleep(1)
                 # set brightness as 0..254
                 brightness_set = brightness
                 brightness_result = brightness_set
@@ -712,6 +718,9 @@ class Govee(object):
                             prop_color_temp = prop["colorTemInKelvin"]
                         else:
                             _LOGGER.debug(f"unknown state property '{prop}'")
+                    
+                    if not prop_online and device.config_offline_is_off:
+                        prop_power_state = False
 
                     # autobrightness learning
                     if device.learned_get_brightness_max == None or (
