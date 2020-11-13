@@ -75,6 +75,9 @@ docs/_build/
 .pybuilder/
 target/
 
+# vs code
+.vscode/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
