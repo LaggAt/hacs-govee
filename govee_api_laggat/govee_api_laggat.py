@@ -51,6 +51,7 @@ class GoveeDevice(object):
     power_state: bool
     brightness: int
     color: Tuple[int, int, int]
+    color_temp: int
     timestamp: int
     source: str
     error: str
@@ -155,6 +156,7 @@ class Govee(object):
         - rate-limiting
         - online/offline status
         """
+        err = None
         await self.rate_limit_delay()
         try:
             async with request_lambda() as response:
@@ -165,7 +167,11 @@ class Govee(object):
         except aiohttp.ClientError as ex:
             # we are offline
             self._set_online(False)
-            
+            err = "error from aiohttp: %s" % ex
+        except Exception as ex:
+            err = "unknown error: %s" % ex
+        
+        if err:
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -175,7 +181,7 @@ class Govee(object):
                 async def text(self):
                     return self._err_msg
 
-            yield error_response("%s from aiohttp" % ex)
+            yield error_response("_api_request_internal: " + err)
 
     def _utcnow(self):
         """Helper method to get utc now as seconds."""
@@ -367,6 +373,7 @@ class Govee(object):
                         power_state=False,
                         brightness=0,
                         color=(0, 0, 0),
+                        color_temp=0,
                         timestamp=timestamp,
                         source="history",
                         error=None,
@@ -685,6 +692,7 @@ class Govee(object):
                     prop_power_state = False
                     prop_brightness = False
                     prop_color = (0, 0, 0)
+                    prop_color_temp = 0
 
                     for prop in json_obj["data"]["properties"]:
                         # somehow these are all dicts with one element
@@ -700,8 +708,10 @@ class Govee(object):
                                 prop["color"]["g"],
                                 prop["color"]["b"],
                             )
+                        elif "colorTemInKelvin" in prop:
+                            prop_color_temp = prop["colorTemInKelvin"]
                         else:
-                            _LOGGER.warning(f"unknown state property {prop}")
+                            _LOGGER.debug(f"unknown state property '{prop}'")
 
                     # autobrightness learning
                     if device.learned_get_brightness_max == None or (
@@ -723,6 +733,7 @@ class Govee(object):
                     result.power_state = prop_power_state
                     result.brightness = prop_brightness
                     result.color = prop_color
+                    result.color_temp_kelvin = prop_color_temp
                     result.timestamp = timestamp
                     result.source = "api"
                     result.error = None
