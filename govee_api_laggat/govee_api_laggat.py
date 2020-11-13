@@ -2,8 +2,8 @@
 
 import asyncio
 import logging
-import sys
 import time
+import math
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -51,6 +51,7 @@ class GoveeDevice(object):
     power_state: bool
     brightness: int
     color: Tuple[int, int, int]
+    color_temp: int
     timestamp: int
     source: str
     error: str
@@ -58,6 +59,8 @@ class GoveeDevice(object):
     lock_get_until: int
     learned_set_brightness_max: int
     learned_get_brightness_max: int
+    before_set_brightness_turn_on: bool
+    config_offline_is_off: bool
 
 
 class GoveeError(Exception):
@@ -89,7 +92,7 @@ class Govee(object):
         learning_storage: Optional[GoveeAbstractLearningStorage] = None,
     ):
         """Init with an API_KEY and storage for learned values."""
-        _LOGGER.debug("govee_api_laggat v%s" + VERSION)
+        _LOGGER.debug("govee_api_laggat v%s", VERSION)
         self._online = True  # assume we are online
         self.events = Events()
         self._api_key = api_key
@@ -154,6 +157,7 @@ class Govee(object):
         - rate-limiting
         - online/offline status
         """
+        err = None
         await self.rate_limit_delay()
         try:
             async with request_lambda() as response:
@@ -164,7 +168,11 @@ class Govee(object):
         except aiohttp.ClientError as ex:
             # we are offline
             self._set_online(False)
-            
+            err = "error from aiohttp: %s" % repr(ex)
+        except Exception as ex:
+            err = "unknown error: %s" % repr(ex)
+        
+        if err:
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -174,7 +182,7 @@ class Govee(object):
                 async def text(self):
                     return self._err_msg
 
-            yield error_response("%s from aiohttp" % ex)
+            yield error_response("_api_request_internal: " + err)
 
     def _utcnow(self):
         """Helper method to get utc now as seconds."""
@@ -329,24 +337,35 @@ class Govee(object):
 
                 for item in result["data"]["devices"]:
                     device_str = item["device"]
+                    model_str = item["model"]
+                    is_retrievable = item["retrievable"]
 
-                    # assuming max values for control and feedback of brightness
+                    # assuming defaults for learned/configured values
                     learned_set_brightness_max = None
                     learned_get_brightness_max = None
+                    before_set_brightness_turn_on = False
+                    config_offline_is_off = False
+                    # defaults by some conditions
+                    if not is_retrievable:
+                        learned_get_brightness_max = -1
+                    if model_str == "H6104":
+                        before_set_brightness_turn_on = True
+
+                    # load learned/configured values
                     if device_str in learning_infos:
                         learning_info = learning_infos[device_str]
                         learned_set_brightness_max = learning_info.set_brightness_max
                         learned_get_brightness_max = learning_info.get_brightness_max
-                    if not item["retrievable"]:
-                        learned_get_brightness_max = -1
+                        before_set_brightness_turn_on = learning_info.before_set_brightness_turn_on
+                        config_offline_is_off = learning_info.config_offline_is_off
 
                     # create device DTO
                     devices[device_str] = GoveeDevice(
                         device=device_str,
-                        model=item["model"],
+                        model=model_str,
                         device_name=item["deviceName"],
                         controllable=item["controllable"],
-                        retrievable=item["retrievable"],
+                        retrievable=is_retrievable,
                         support_cmds=item["supportCmds"],
                         support_turn="turn" in item["supportCmds"],
                         support_brightness="brightness" in item["supportCmds"],
@@ -357,6 +376,7 @@ class Govee(object):
                         power_state=False,
                         brightness=0,
                         color=(0, 0, 0),
+                        color_temp=0,
                         timestamp=timestamp,
                         source="history",
                         error=None,
@@ -364,6 +384,8 @@ class Govee(object):
                         lock_get_until=0,
                         learned_set_brightness_max=learned_set_brightness_max,
                         learned_get_brightness_max=learned_get_brightness_max,
+                        before_set_brightness_turn_on=before_set_brightness_turn_on,
+                        config_offline_is_off=config_offline_is_off
                     )
             else:
                 result = await response.text()
@@ -435,12 +457,21 @@ class Govee(object):
             if brightness < 0 or brightness > 254:
                 err = f"set_brightness: invalid value {brightness}, allowed range 0 .. 254"
             else:
+                if brightness > 0 and device.before_set_brightness_turn_on:
+                    await self.turn_on(device)
+                    # api doesn't work if we don't sleep
+                    await asyncio.sleep(1)
                 # set brightness as 0..254
                 brightness_set = brightness
-                brightness_set_100 = brightness * 100 // 254
+                brightness_result = brightness_set
+                brightness_set_100 = 0
+                if brightness_set > 0:
+                    brightness_set_100 = max(1, math.floor(brightness * 100 / 254))
+                brightness_result_100 = math.ceil(brightness_set_100 * 254 / 100)
                 if device.learned_set_brightness_max == 100:
                     # set brightness as 0..100
                     brightness_set = brightness_set_100
+                    brightness_result = brightness_result_100
                 command = "brightness"
                 result, err = await self._control(device, command, brightness_set)
                 if err:
@@ -448,6 +479,7 @@ class Govee(object):
                     if "API-Error 400" in err:  # Unsupported Cmd Value
                         # set brightness as 0..100 as 0..254 didn't work
                         brightness_set = brightness_set_100
+                        brightness_result = brightness_result_100
                         result, err = await self._control(
                             device, command, brightness_set
                         )
@@ -464,8 +496,8 @@ class Govee(object):
                     if success:
                         self._devices[device_str].timestamp = self._utcnow
                         self._devices[device_str].source = "history"
-                        self._devices[device_str].brightness = brightness
-                        self._devices[device_str].power_state = brightness > 0
+                        self._devices[device_str].brightness = brightness_result
+                        self._devices[device_str].power_state = brightness_result > 0
         return success, err
 
     async def _learn(self, device):
@@ -596,10 +628,13 @@ class Govee(object):
             seconds_locked = self._get_lock_seconds(device.lock_set_until)
             if not device.controllable:
                 err = f"Device {device.device} is not controllable"
+                _LOGGER.debug(f"control {device_str} not possible: {err}")
             elif seconds_locked:
                 err = f"Device {device.device} is locked for control next {sec} seconds"
+                _LOGGER.warning(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
                 err = f"Command {command} not possible on device {device.device}"
+                _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
                 json = {"device": device.device, "model": device.model, "cmd": cmd}
                 await self.rate_limit_delay()
@@ -614,6 +649,7 @@ class Govee(object):
                     else:
                         text = await response.text()
                         err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
+                        _LOGGER.warning(f"control {device_str} not possible: {err}")
         return result, err
 
     async def get_states(self) -> List[GoveeDevice]:
@@ -622,6 +658,9 @@ class Govee(object):
         for device_str in self._devices:
             state, err = await self._get_device_state(device_str)
             if err:
+                _LOGGER.warning("error getting state for device %s: %s",
+                    device_str, err,
+                )
                 self._devices[device_str].error = err
             else:
                 self._devices[device_str] = state
@@ -659,6 +698,7 @@ class Govee(object):
                     prop_power_state = False
                     prop_brightness = False
                     prop_color = (0, 0, 0)
+                    prop_color_temp = 0
 
                     for prop in json_obj["data"]["properties"]:
                         # somehow these are all dicts with one element
@@ -674,8 +714,13 @@ class Govee(object):
                                 prop["color"]["g"],
                                 prop["color"]["b"],
                             )
+                        elif "colorTemInKelvin" in prop:
+                            prop_color_temp = prop["colorTemInKelvin"]
                         else:
-                            _LOGGER.warning(f"unknown state property {prop}")
+                            _LOGGER.debug(f"unknown state property '{prop}'")
+                    
+                    if not prop_online and device.config_offline_is_off:
+                        prop_power_state = False
 
                     # autobrightness learning
                     if device.learned_get_brightness_max == None or (
@@ -690,13 +735,14 @@ class Govee(object):
                         await self._learn(device)
                     if device.learned_get_brightness_max == 100:
                         # scale range 0-100 up to 0-254
-                        prop_brightness = prop_brightness * 254 // 100
+                        prop_brightness = math.floor( prop_brightness * 254 / 100 )
 
                     result = self._devices[device_str]
                     result.online = prop_online
                     result.power_state = prop_power_state
                     result.brightness = prop_brightness
                     result.color = prop_color
+                    result.color_temp_kelvin = prop_color_temp
                     result.timestamp = timestamp
                     result.source = "api"
                     result.error = None
