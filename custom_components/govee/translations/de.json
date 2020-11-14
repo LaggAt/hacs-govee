@@ -1,0 +1,21 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Bereits eingerichtet. Es ist nur eine Konfiguration möglich."
+    },
+    "error": {
+      "cannot_connect": "Keine Verbindung möglich. Ist der API-Key richtig und die Internet Verbindung in Ordnung?",
+      "unknown": "Unbekannter Fehler."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API Key",
+          "delay": "Abfrage-Intervall"
+        },
+        "description": "Den API Key bekommen Sie in der Govee Home App. Details dazu hier: https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  },
+  "title": "Govee LED Strips"
+}

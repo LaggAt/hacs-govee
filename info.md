@@ -21,8 +21,22 @@ Platform | Description
 
 {% endif %}
 
-
 ## Configuration is done in the UI
+
+Usually you just add the integration, enter api-key and poll interval and you are good to go. When you need further help you can look here:
+
+## Further information and help
+
+* [Documentation on GitHub](https://github.com/LaggAt/hacs-govee/blob/master/README.md)
+* [Support thread on Home Assistant Community](https://community.home-assistant.io/t/govee-led-strips-integration/228516/1)
+
+## Sponsor
+
+A lot of effort is going into that integration. So if you can afford it and want to support us:
+
+<a href="https://www.buymeacoffee.com/LaggAt" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+Thank you!
 
 <!---->
 
