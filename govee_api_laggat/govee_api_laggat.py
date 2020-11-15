@@ -742,7 +742,7 @@ class Govee(object):
                     result.power_state = prop_power_state
                     result.brightness = prop_brightness
                     result.color = prop_color
-                    result.color_temp_kelvin = prop_color_temp
+                    result.color_temp = prop_color_temp
                     result.timestamp = timestamp
                     result.source = "api"
                     result.error = None
