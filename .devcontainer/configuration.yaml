@@ -1,0 +1,12 @@
+default_config:
+
+# enable remote python debugger
+debugpy:
+
+# debug logging for govee integration
+logger:
+  default: info
+  logs:
+    homeassistant.components.govee: debug
+    custom_components.govee: debug
+    govee_api_laggat: debug
