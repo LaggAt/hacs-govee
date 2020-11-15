@@ -123,7 +123,14 @@ class GoveeLightEntity(LightEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        return SUPPORT_BRIGHTNESS | SUPPORT_COLOR | SUPPORT_COLOR_TEMP
+        support_flags = 0
+        if self._device.support_brightness:
+            support_flags |= SUPPORT_BRIGHTNESS
+        if self._device.support_color:
+            support_flags |= SUPPORT_COLOR
+        if self._device.support_color_tem:
+            support_flags |= SUPPORT_COLOR_TEMP
+        return support_flags
 
     async def async_turn_on(self, **kwargs):
         """Turn device on."""
