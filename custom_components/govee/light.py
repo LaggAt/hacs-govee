@@ -18,7 +18,14 @@ from homeassistant.const import CONF_DELAY
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import color
 
-from .const import DOMAIN
+from .const import (
+    CONF_OFFLINE_IS_OFF,
+    CONF_USE_ASSUMED_STATE,
+    DOMAIN,
+    COLOR_TEMP_KELVIN_MIN,
+    COLOR_TEMP_KELVIN_MAX,
+)
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +39,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # refresh
     update_interval = timedelta(seconds=config[CONF_DELAY])
     coordinator = GoveeDataUpdateCoordinator(
-        hass, _LOGGER, update_interval=update_interval
+        hass, _LOGGER, update_interval=update_interval, config_entry=entry
     )
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
@@ -50,13 +57,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
     """Device state update handler."""
 
-    def __init__(
-        self,
-        hass,
-        logger,
-        update_interval=None,
-    ):
+    def __init__(self, hass, logger, update_interval=None, *, config_entry):
         """Initialize global data updater."""
+        self._config_entry = config_entry
+
         super().__init__(
             hass,
             logger,
@@ -64,6 +68,16 @@ class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=update_interval,
             update_method=self._async_update,
         )
+
+    @property
+    def use_assumed_state(self):
+        """Use assumed states."""
+        return self._config_entry.options.get(CONF_USE_ASSUMED_STATE, True)
+
+    @property
+    def config_offline_is_off(self):
+        """Interpret offline led's as off (global config)."""
+        return self._config_entry.options.get(CONF_OFFLINE_IS_OFF, False)
 
     async def _async_update(self):
         """Fetch data."""
@@ -78,6 +92,12 @@ class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
                 await hub.check_connection()
 
             if hub.online:
+                # set global options to library
+                if self.config_offline_is_off:
+                    hub.config_offline_is_off = True
+                else:
+                    hub.config_offline_is_off = None  # allow override in learning info
+
                 # govee will change this to a single request in 2021
                 device_states = await hub.get_states()
                 for device in device_states:
@@ -149,8 +169,12 @@ class GoveeLightEntity(LightEntity):
             _, err = await self._hub.set_brightness(self._device, bright_set)
         elif ATTR_COLOR_TEMP in kwargs:
             color_temp = kwargs[ATTR_COLOR_TEMP]
-            _, err = await self._hub.set_color_temp(self._device, color_temp)
-            # color_temp is not in state
+            color_temp_kelvin = color.color_temperature_mired_to_kelvin(color_temp)
+            if color_temp_kelvin > COLOR_TEMP_KELVIN_MAX:
+                color_temp_kelvin = COLOR_TEMP_KELVIN_MAX
+            elif color_temp_kelvin < COLOR_TEMP_KELVIN_MIN:
+                color_temp_kelvin = COLOR_TEMP_KELVIN_MIN
+            _, err = await self._hub.set_color_temp(self._device, color_temp_kelvin)
         else:
             _, err = await self._hub.turn_on(self._device)
         # warn on any error
@@ -200,8 +224,12 @@ class GoveeLightEntity(LightEntity):
 
     @property
     def assumed_state(self):
-        """Return true if the state is assumed."""
-        return self._device.source == "history"
+        """
+        Return true if the state is assumed.
+
+        This can be disabled in options.
+        """
+        return self._coordinator.use_assumed_state and self._device.source == "history"
 
     @property
     def available(self):
@@ -233,14 +261,21 @@ class GoveeLightEntity(LightEntity):
         return self._device.brightness + 1
 
     @property
+    def color_temp(self):
+        """Return the color_temp of the light."""
+        if not self._device.color_temp:
+            return None
+        return color.color_temperature_kelvin_to_mired(self._device.color_temp)
+
+    @property
     def min_mireds(self):
         """Return the coldest color_temp that this light supports."""
-        return 2000
+        return color.color_temperature_kelvin_to_mired(COLOR_TEMP_KELVIN_MAX)
 
     @property
     def max_mireds(self):
         """Return the warmest color_temp that this light supports."""
-        return 9000
+        return color.color_temperature_kelvin_to_mired(COLOR_TEMP_KELVIN_MIN)
 
     @property
     def device_state_attributes(self):

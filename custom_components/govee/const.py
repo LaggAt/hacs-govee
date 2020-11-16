@@ -1,11 +1,9 @@
 """Constants for the Govee LED strips integration."""
 
-import voluptuous as vol
-
-from homeassistant.const import CONF_API_KEY, CONF_DELAY
-
 DOMAIN = "govee"
 
-DATA_SCHEMA = vol.Schema(
-    {vol.Required(CONF_API_KEY): str, vol.Optional(CONF_DELAY, default=10): int}
-)
+CONF_USE_ASSUMED_STATE = "use_assumed_state"
+CONF_OFFLINE_IS_OFF = "offline_is_off"
+
+COLOR_TEMP_KELVIN_MIN = 2000
+COLOR_TEMP_KELVIN_MAX = 9000
