@@ -1,12 +1,16 @@
 """Config flow for Govee LED strips integration."""
 
 import logging
+from logging import error
 
 from govee_api_laggat import Govee
 
 from homeassistant import config_entries, core, exceptions
+from homeassistant.const import CONF_API_KEY, CONF_DELAY
+from homeassistant.core import callback
+import voluptuous as vol
 
-from .const import CONF_API_KEY, DATA_SCHEMA, DOMAIN
+from .const import DOMAIN, CONF_USE_ASSUMED_STATE, CONF_OFFLINE_IS_OFF
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,8 +53,70 @@ class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_API_KEY): str,
+                    vol.Optional(CONF_DELAY, default=10): int,
+                }
+            ),
+            errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow."""
+        return GoveeOptionsFlowHandler(config_entry)
+
+
+class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options."""
+
+    VERSION = 1
+
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
+        return await self.async_step_user()
+
+    async def async_step_user(self, user_input=None):
+        """Manage the options."""
+        errors = {}
+        if user_input is not None:
+            self.options.update(user_input)
+            return await self._update_options()
+            # for later - extend with options you don't want in config but option flow
+            # return await self.async_step_options_2()
+
+        # TODO: check input for errors
+
+        options_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_USE_ASSUMED_STATE,
+                    default=self.config_entry.options.get(CONF_USE_ASSUMED_STATE, True),
+                ): bool,
+                vol.Required(
+                    CONF_OFFLINE_IS_OFF,
+                    default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
+                ): bool
+            },
+        )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=options_schema,
+            errors=errors,
+        )
+
+    async def _update_options(self):
+        """Update config entry options."""
+        return self.async_create_entry(title=DOMAIN, data=self.options)
 
 
 class CannotConnect(exceptions.HomeAssistantError):

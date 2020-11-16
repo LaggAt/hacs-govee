@@ -1,4 +1,5 @@
 {
+  "title": "Govee LED strips",
   "config": {
     "abort": {
       "already_configured": "Already configured. Only a single configuration possible."
@@ -13,9 +14,21 @@
           "api_key": "API Key",
           "delay": "Poll Interval"
         },
+        "title": "Govee LED strips",
         "description": "Get your API Key from the Govee Home App. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
       }
     }
   },
-  "title": "Govee LED strips"
+  "options": {
+    "step": {
+      "user": {
+        "data": {
+          "use_assumed_state": "Use 'assumed state' (two buttons). Default: True",
+          "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False"
+        },
+        "title": "Govee LED strips - Options",
+        "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  }
 }
