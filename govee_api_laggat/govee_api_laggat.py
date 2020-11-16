@@ -720,7 +720,7 @@ class Govee(object):
                     for prop in json_obj["data"]["properties"]:
                         # somehow these are all dicts with one element
                         if "online" in prop:
-                            prop_online = prop["online"]
+                            prop_online = prop["online"] is True
                         elif "powerState" in prop:
                             prop_power_state = prop["powerState"] == "on"
                         elif "brightness" in prop:
