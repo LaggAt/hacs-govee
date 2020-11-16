@@ -112,7 +112,7 @@ JSON_DEVICE_STATE_OFFLINE = {
         "device": JSON_DEVICE_H6163["device"],
         "model": JSON_DEVICE_H6163["model"],
         "properties": [
-            {"online": False},
+            {"online": 'false'}, # yes, govee returns string 'false'
             {"powerState": "on"},
             {"brightness": 254},
             {"color": {"r": 139, "b": 255, "g": 0}},
