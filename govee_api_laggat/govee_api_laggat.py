@@ -60,7 +60,7 @@ class GoveeDevice(object):
     learned_set_brightness_max: int
     learned_get_brightness_max: int
     before_set_brightness_turn_on: bool
-    config_offline_is_off: bool
+    config_offline_is_off: bool # this is the learning config, possibly overridden by a global config
 
 
 class GoveeError(Exception):
@@ -101,6 +101,7 @@ class Govee(object):
         self._limit = 100
         self._limit_remaining = 100
         self._limit_reset = 0
+        self._config_offline_is_off = None
         self._learning_storage = learning_storage
         if not self._learning_storage:
             # use an internal learning storage as long as we run.
@@ -265,6 +266,22 @@ class Govee(object):
         self._rate_limit_on = val
 
     @property
+    def config_offline_is_off(self):
+        """Get the global config option config_offline_is_off."""
+        return self._config_offline_is_off
+
+    @config_offline_is_off.setter
+    def config_offline_is_off(self, val: bool):
+        """
+        Set global behavour when device is offline.
+
+        None: default, use config_offline_is_off from learning, or False by default.
+        False: an offline device doesn't change power state.
+        True: an offline device is shown as off.
+        """
+        self._config_offline_is_off = val
+
+    @property
     def devices(self) -> List[GoveeDevice]:
         """Cached devices list."""
         lst = []
@@ -344,7 +361,7 @@ class Govee(object):
                     learned_set_brightness_max = None
                     learned_get_brightness_max = None
                     before_set_brightness_turn_on = False
-                    config_offline_is_off = False
+                    config_offline_is_off = False # effenctive state
                     # defaults by some conditions
                     if not is_retrievable:
                         learned_get_brightness_max = -1
@@ -719,8 +736,14 @@ class Govee(object):
                         else:
                             _LOGGER.debug(f"unknown state property '{prop}'")
                     
-                    if not prop_online and device.config_offline_is_off:
-                        prop_power_state = False
+                    if not prop_online:
+                        if self.config_offline_is_off is not None:
+                            # global option
+                            if self.config_offline_is_off:
+                                prop_power_state = False
+                        elif device.config_offline_is_off:
+                            # learning option
+                            prop_power_state = False
 
                     # autobrightness learning
                     if device.learned_get_brightness_max == None or (
