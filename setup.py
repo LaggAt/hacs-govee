@@ -3,7 +3,7 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-INSTALL_REQUIRES = ["aiohttp[speedups]==3.6.2", "events==0.3"]
+INSTALL_REQUIRES = ["aiohttp[speedups]==3.7.1", "events==0.3"]
 
 setuptools.setup(
     name="govee_api_laggat",
@@ -13,7 +13,7 @@ setuptools.setup(
     description="Implementation of the govee API to control LED strips and bulbs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/LaggAt/govee-api-laggat",
+    url="https://github.com/LaggAt/python-govee-api",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
