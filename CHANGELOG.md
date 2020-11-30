@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - online event firing once when api goes online, offline
 - learning info may configure 'before_set_brightness_turn_on: True', to send a turn_on when setting brightness > 0
 - storage example added for devs
+- Python 3.9 as test environment (previously 3.7, 3,8)
 ### Changed
 - Setting brightness is different on different devices. Most devices use a Range of 0-100, some use 0-254.
   ~~Default in this client is 0..100, please tell me when we find models which you can only set to 40% brightness to add them to a list.~~
