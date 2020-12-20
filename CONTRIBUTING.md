@@ -16,7 +16,7 @@ Pull requests are the best way to propose changes to the codebase.
 1. Fork the repo and create your branch from `master`.
 2. If you've changed something, update the documentation.
 3. Make sure your code lints (using black).
-4. Test you contribution.
+4. Test you contribution (using tox).
 5. Issue that pull request!
 
 ## Any contributions you make will be under the MIT Software License

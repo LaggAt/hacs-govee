@@ -1,7 +1,6 @@
 """Config flow for Govee LED strips integration."""
 
 import logging
-from logging import error
 
 from govee_api_laggat import Govee
 
@@ -104,7 +103,7 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_OFFLINE_IS_OFF,
                     default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
-                ): bool
+                ): bool,
             },
         )
 
