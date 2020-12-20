@@ -642,17 +642,19 @@ class Govee(object):
         if not device:
             err = f"Invalid device {device_str}, {device}"
         else:
-            seconds_locked = self._get_lock_seconds(device.lock_set_until)
             if not device.controllable:
                 err = f"Device {device.device} is not controllable"
                 _LOGGER.debug(f"control {device_str} not possible: {err}")
-            elif seconds_locked:
-                err = f"Device {device.device} is locked for control next {sec} seconds"
-                _LOGGER.warning(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
                 err = f"Command {command} not possible on device {device.device}"
                 _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
+                while True:
+                    seconds_locked = self._get_lock_seconds(device.lock_set_until)
+                    if not seconds_locked:
+                        break;
+                    _LOGGER.debug(f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}")
+                    await asyncio.sleep(seconds_locked)
                 json = {"device": device.device, "model": device.model, "cmd": cmd}
                 await self.rate_limit_delay()
                 async with self._api_put(
