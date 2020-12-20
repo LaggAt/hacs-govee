@@ -1,17 +1,25 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
 	"image": "ludeeus/container:integration-debian",
-	"name": "Blueprint integration development",
+	"name": "Govee integration development",
 	"context": "..",
 	"appPort": [
 		"9123:8123"
 	],
-	"postCreateCommand": "container install",
+	"postCreateCommand": [
+		"/bin/sh -c 'python3 -m pip install --upgrade pip'",
+		"/bin/sh -c 'container install'",
+		"/bin/sh -c 'pip3 install -r /workspaces/hacs-govee/requirements_test.txt'"
+	],
 	"extensions": [
 		"ms-python.python",
 		"github.vscode-pull-request-github",
 		"ryanluker.vscode-coverage-gutters",
-		"ms-python.vscode-pylance"
+		"ms-python.vscode-pylance",
+		"littlefoxteam.vscode-python-test-adapter",
+		"hbenl.vscode-test-explorer",
+		"tht13.python",
+		"mhutchie.git-graph"
 	],
 	"settings": {
 		"files.eol": "\n",
