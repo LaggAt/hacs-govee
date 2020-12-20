@@ -32,7 +32,7 @@ _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limi
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
 # do not send another control within n seconds after controlling the device
-DELAY_SET_FOLLOWING_SET_SECONDS = 0.5
+DELAY_SET_FOLLOWING_SET_SECONDS = 1
 
 @dataclass
 class GoveeDevice(object):
