@@ -159,24 +159,33 @@ class GoveeLightEntity(LightEntity):
         )
         err = None
 
+        just_turn_on = True
         if ATTR_HS_COLOR in kwargs:
-            hs_color = kwargs[ATTR_HS_COLOR]
+            hs_color = kwargs.pop(ATTR_HS_COLOR)
+            just_turn_on = False
             col = color.color_hs_to_RGB(hs_color[0], hs_color[1])
             _, err = await self._hub.set_color(self._device, col)
-        elif ATTR_BRIGHTNESS in kwargs:
-            brightness = kwargs[ATTR_BRIGHTNESS]
+        if ATTR_BRIGHTNESS in kwargs:
+            brightness = kwargs.pop(ATTR_BRIGHTNESS)
+            just_turn_on = False
             bright_set = brightness - 1
             _, err = await self._hub.set_brightness(self._device, bright_set)
-        elif ATTR_COLOR_TEMP in kwargs:
-            color_temp = kwargs[ATTR_COLOR_TEMP]
+        if ATTR_COLOR_TEMP in kwargs:
+            color_temp = kwargs.pop(ATTR_COLOR_TEMP)
+            just_turn_on = False
             color_temp_kelvin = color.color_temperature_mired_to_kelvin(color_temp)
             if color_temp_kelvin > COLOR_TEMP_KELVIN_MAX:
                 color_temp_kelvin = COLOR_TEMP_KELVIN_MAX
             elif color_temp_kelvin < COLOR_TEMP_KELVIN_MIN:
                 color_temp_kelvin = COLOR_TEMP_KELVIN_MIN
             _, err = await self._hub.set_color_temp(self._device, color_temp_kelvin)
-        else:
+
+        # if there is no known specific command - turn on
+        if just_turn_on:
             _, err = await self._hub.turn_on(self._device)
+        # debug log unknown commands
+        if kwargs:
+            _LOGGER.debug('async_turn_on doesnt know how to handle kwargs: %s', repr(kwargs))
         # warn on any error
         if err:
             _LOGGER.warning(
