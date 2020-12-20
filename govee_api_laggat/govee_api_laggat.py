@@ -31,7 +31,8 @@ _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limi
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
-
+# do not send another control within n seconds after controlling the device
+DELAY_SET_FOLLOWING_SET_SECONDS = 0.5
 
 @dataclass
 class GoveeDevice(object):
@@ -661,6 +662,9 @@ class Govee(object):
                     url=_API_DEVICES_CONTROL, json=json
                 ) as response:
                     if response.status == 200:
+                        device.lock_set_until = (
+                            self._utcnow() + DELAY_SET_FOLLOWING_SET_SECONDS
+                        )
                         device.lock_get_until = (
                             self._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
                         )
