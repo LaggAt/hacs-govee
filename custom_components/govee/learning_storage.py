@@ -38,7 +38,8 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
             )
         except FileNotFoundError:
             _LOGGER.warning(
-                "There is no %s file containing learned information about your devices. This is normal for first start of Govee integration.",
+                "There is no %s file containing learned information about your devices. "
+                + "This is normal for first start of Govee integration.",
                 self._config_dir + LEARNING_STORAGE_YAML,
             )
         except (
@@ -48,7 +49,8 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
             yaml.YAMLError,
         ) as ex:
             _LOGGER.warning(
-                "The %s file containing learned information about your devices is invalid: %s. Learning starts from scratch.",
+                "The %s file containing learned information about your devices is invalid: %s. "
+                + "Learning starts from scratch.",
                 self._config_dir + LEARNING_STORAGE_YAML,
                 ex,
             )
