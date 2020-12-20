@@ -31,7 +31,8 @@ _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limi
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
-
+# do not send another control within n seconds after controlling the device
+DELAY_SET_FOLLOWING_SET_SECONDS = 1
 
 @dataclass
 class GoveeDevice(object):
@@ -60,7 +61,7 @@ class GoveeDevice(object):
     learned_set_brightness_max: int
     learned_get_brightness_max: int
     before_set_brightness_turn_on: bool
-    config_offline_is_off: bool
+    config_offline_is_off: bool # this is the learning config, possibly overridden by a global config
 
 
 class GoveeError(Exception):
@@ -101,6 +102,7 @@ class Govee(object):
         self._limit = 100
         self._limit_remaining = 100
         self._limit_reset = 0
+        self._config_offline_is_off = None
         self._learning_storage = learning_storage
         if not self._learning_storage:
             # use an internal learning storage as long as we run.
@@ -265,6 +267,22 @@ class Govee(object):
         self._rate_limit_on = val
 
     @property
+    def config_offline_is_off(self):
+        """Get the global config option config_offline_is_off."""
+        return self._config_offline_is_off
+
+    @config_offline_is_off.setter
+    def config_offline_is_off(self, val: bool):
+        """
+        Set global behavour when device is offline.
+
+        None: default, use config_offline_is_off from learning, or False by default.
+        False: an offline device doesn't change power state.
+        True: an offline device is shown as off.
+        """
+        self._config_offline_is_off = val
+
+    @property
     def devices(self) -> List[GoveeDevice]:
         """Cached devices list."""
         lst = []
@@ -344,7 +362,7 @@ class Govee(object):
                     learned_set_brightness_max = None
                     learned_get_brightness_max = None
                     before_set_brightness_turn_on = False
-                    config_offline_is_off = False
+                    config_offline_is_off = False # effenctive state
                     # defaults by some conditions
                     if not is_retrievable:
                         learned_get_brightness_max = -1
@@ -625,23 +643,28 @@ class Govee(object):
         if not device:
             err = f"Invalid device {device_str}, {device}"
         else:
-            seconds_locked = self._get_lock_seconds(device.lock_set_until)
             if not device.controllable:
                 err = f"Device {device.device} is not controllable"
                 _LOGGER.debug(f"control {device_str} not possible: {err}")
-            elif seconds_locked:
-                err = f"Device {device.device} is locked for control next {sec} seconds"
-                _LOGGER.warning(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
                 err = f"Command {command} not possible on device {device.device}"
                 _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
+                while True:
+                    seconds_locked = self._get_lock_seconds(device.lock_set_until)
+                    if not seconds_locked:
+                        break;
+                    _LOGGER.debug(f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}")
+                    await asyncio.sleep(seconds_locked)
                 json = {"device": device.device, "model": device.model, "cmd": cmd}
                 await self.rate_limit_delay()
                 async with self._api_put(
                     url=_API_DEVICES_CONTROL, json=json
                 ) as response:
                     if response.status == 200:
+                        device.lock_set_until = (
+                            self._utcnow() + DELAY_SET_FOLLOWING_SET_SECONDS
+                        )
                         device.lock_get_until = (
                             self._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
                         )
@@ -703,7 +726,7 @@ class Govee(object):
                     for prop in json_obj["data"]["properties"]:
                         # somehow these are all dicts with one element
                         if "online" in prop:
-                            prop_online = prop["online"]
+                            prop_online = prop["online"] is True
                         elif "powerState" in prop:
                             prop_power_state = prop["powerState"] == "on"
                         elif "brightness" in prop:
@@ -719,8 +742,14 @@ class Govee(object):
                         else:
                             _LOGGER.debug(f"unknown state property '{prop}'")
                     
-                    if not prop_online and device.config_offline_is_off:
-                        prop_power_state = False
+                    if not prop_online:
+                        if self.config_offline_is_off is not None:
+                            # global option
+                            if self.config_offline_is_off:
+                                prop_power_state = False
+                        elif device.config_offline_is_off:
+                            # learning option
+                            prop_power_state = False
 
                     # autobrightness learning
                     if device.learned_get_brightness_max == None or (
@@ -742,7 +771,7 @@ class Govee(object):
                     result.power_state = prop_power_state
                     result.brightness = prop_brightness
                     result.color = prop_color
-                    result.color_temp_kelvin = prop_color_temp
+                    result.color_temp = prop_color_temp
                     result.timestamp = timestamp
                     result.source = "api"
                     result.error = None

@@ -601,5 +601,79 @@ async def test_offlineIsOffConfig_off(mock_aiohttp, mock_never_lock):
         assert govee.device(DUMMY_DEVICE_H6163.device).power_state == False
         assert govee.device(DUMMY_DEVICE_H6163.device).online == False
         
-        
+@pytest.mark.asyncio
+async def test_globalOfflineIsOffConfig_off(mock_aiohttp, mock_never_lock):
+    """
+    Device is on, and going offline. Computed state is configured to be OFF when offline.
+    config_offline_is_off=True
+    """
+    # arrange
+    learning_storage = LearningStorage(copy.deepcopy(LEARNED_S100_G254))
 
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # request devices list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 1
+
+        ### set global config_offline_is_off
+        govee.config_offline_is_off = True
+
+        # turn on
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    "cmd": {"name": "turn", "value": "on"},
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        success, err = await govee.turn_on(DUMMY_DEVICE_H6163.device)
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        assert govee.device(DUMMY_DEVICE_H6163.device).power_state == True
+        assert govee.device(DUMMY_DEVICE_H6163.device).online == True
+        
+        # get state - but device is offline
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json=copy.deepcopy(JSON_DEVICE_STATE_OFFLINE),
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/state"
+                and kwargs["params"]
+                == {
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        await govee.get_states()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        assert govee.device(DUMMY_DEVICE_H6163.device).power_state == False
+        assert govee.device(DUMMY_DEVICE_H6163.device).online == False
+        
