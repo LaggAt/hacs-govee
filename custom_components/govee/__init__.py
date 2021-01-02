@@ -37,9 +37,10 @@ def is_online(online: bool):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Govee LED strips from a config entry."""
 
-    # get vars from ConfigFlow
+    # get vars from ConfigFlow/OptionsFlow
     config = entry.data
-    api_key = config[CONF_API_KEY]
+    options = entry.options
+    api_key = options.get(CONF_API_KEY, config.get(CONF_API_KEY, ""))
 
     # Setup connection with devices/cloud
     hub = await Govee.create(

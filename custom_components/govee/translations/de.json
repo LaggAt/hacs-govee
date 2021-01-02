@@ -23,6 +23,8 @@
     "step": {
       "user": {
         "data": {
+          "api_key": "API Key (benötigt Neustart)",
+          "delay": "Abfrage-Intervall (benötigt Neustart)",
           "use_assumed_state": "Verwende 'angenommenen Zustand' (zwei Buttons). Standard: True",
           "offline_is_off": "Wenn eine LED offline ist, zeige sie als Aus (Standard ändert den Status nicht). Standard: False"
         },

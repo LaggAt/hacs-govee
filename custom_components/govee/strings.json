@@ -23,6 +23,8 @@
     "step": {
       "user": {
         "data": {
+          "api_key": "API Key (requires restart)",
+          "delay": "Poll Interval (requires restart)",
           "use_assumed_state": "Use 'assumed state' (two buttons). Default: True",
           "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False"
         },
