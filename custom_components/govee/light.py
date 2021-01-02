@@ -34,10 +34,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the Govee Light platform."""
     _LOGGER.debug("Setting up Govee lights")
     config = entry.data
+    options = entry.options
     hub = hass.data[DOMAIN]["hub"]
 
     # refresh
-    update_interval = timedelta(seconds=config[CONF_DELAY])
+    update_interval = timedelta(
+        seconds=options.get(CONF_DELAY, config.get(CONF_DELAY, 10))
+    )
     coordinator = GoveeDataUpdateCoordinator(
         hass, _LOGGER, update_interval=update_interval, config_entry=entry
     )
@@ -185,7 +188,9 @@ class GoveeLightEntity(LightEntity):
             _, err = await self._hub.turn_on(self._device)
         # debug log unknown commands
         if kwargs:
-            _LOGGER.debug('async_turn_on doesnt know how to handle kwargs: %s', repr(kwargs))
+            _LOGGER.debug(
+                "async_turn_on doesnt know how to handle kwargs: %s", repr(kwargs)
+            )
         # warn on any error
         if err:
             _LOGGER.warning(
