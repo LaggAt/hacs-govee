@@ -1,6 +1,7 @@
 {
   "domain": "govee",
   "name": "Govee LED strips",
+  "version": "0.1.6-beta.1",
   "config_flow": true,
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
