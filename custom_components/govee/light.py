@@ -1,4 +1,4 @@
-"""Govee LED strips platform."""
+"""Govee platform."""
 
 from datetime import timedelta
 import logging

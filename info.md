@@ -3,13 +3,13 @@
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
 
-_Component to integrate with [Govee LED strips][hacs-govee]._
+_Component to integrate with [Govee][hacs-govee]._
 
 **This component will set up the following platforms.**
 
 Platform | Description
 -- | --
-`light` | Control your led strips.
+`light` | Control your lights.
 
 <!-- ![example][exampleimg] -->
 

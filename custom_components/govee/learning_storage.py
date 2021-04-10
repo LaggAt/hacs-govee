@@ -14,7 +14,7 @@ LEARNING_STORAGE_YAML = "/govee_learning.yaml"
 
 
 class GoveeLearningStorage(GoveeAbstractLearningStorage):
-    """The govee_api_laggat library uses this to store learned information about led strips."""
+    """The govee_api_laggat library uses this to store learned information about lights."""
 
     def __init__(self, config_dir, *args, **kwargs):
         """Get the config directory."""
