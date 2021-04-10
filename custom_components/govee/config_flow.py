@@ -1,4 +1,4 @@
-"""Config flow for Govee LED strips integration."""
+"""Config flow for Govee integration."""
 
 import logging
 
@@ -35,7 +35,7 @@ async def validate_api_key(hass: core.HomeAssistant, user_input):
 
 @config_entries.HANDLERS.register(DOMAIN)
 class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Govee LED strips."""
+    """Handle a config flow for Govee."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL

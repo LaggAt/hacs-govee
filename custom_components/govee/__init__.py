@@ -1,4 +1,4 @@
-"""The Govee LED strips integration."""
+"""The Govee integration."""
 import asyncio
 import logging
 
@@ -20,8 +20,15 @@ CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 PLATFORMS = ["light"]
 
 
+def setup(hass, config):
+    """This setup does nothing, we use the async setup."""
+    hass.states.set("govee.state", "setup called")
+    return True
+
+
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Govee LED strips component."""
+    """Set up the Govee component."""
+    hass.states.async_set("govee.state", "async_setup called")
     hass.data[DOMAIN] = {}
     return True
 
@@ -35,7 +42,7 @@ def is_online(online: bool):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Govee LED strips from a config entry."""
+    """Set up Govee from a config entry."""
 
     # get vars from ConfigFlow/OptionsFlow
     config = entry.data

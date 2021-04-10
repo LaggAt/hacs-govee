@@ -15,8 +15,12 @@
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "."
-                }
+                    "remoteRoot": "/workspaces/hacs-govee"
+                },
+                {
+                    "localRoot": "/custom_components/govee",
+                    "remoteRoot": "/workspaces/hacs-govee"
+                },
             ],
             "justMyCode": false
         }
