@@ -28,6 +28,7 @@ _API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
 _RATELIMIT_TOTAL = "Rate-Limit-Total"  # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = "Rate-Limit-Remaining"  # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limit window resets in UTC epoch seconds.
+_RATELIMIT_RESET_MAX_SECONDS = 180  # The maximum time in seconds to wait for a rate limit reset
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
@@ -205,7 +206,13 @@ class Govee(object):
             try:
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
-                self._limit_reset = float(response.headers[_RATELIMIT_RESET])
+                # reset rate limiting with maximum
+                limit_reset = self._utcnow() + _RATELIMIT_RESET_MAX_SECONDS
+                limit_reset_api = float(response.headers[_RATELIMIT_RESET])
+                if(limit_reset_api < limit_reset):
+                    # api returns valid values for rate limit reset seconds
+                    limit_reset = limit_reset_api
+                self._limit_reset = limit_reset
                 _LOGGER.debug(
                     f"Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds"
                 )
@@ -457,7 +464,7 @@ class Govee(object):
             if not err:
                 success = self._is_success_result_message(result)
                 if success:
-                    self._devices[device_str].timestamp = self._utcnow
+                    self._devices[device_str].timestamp = self._utcnow()
                     self._devices[device_str].source = "history"
                     self._devices[device_str].power_state = onOff == "on"
         return success, err
@@ -512,7 +519,7 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].timestamp = self._utcnow()
                         self._devices[device_str].source = "history"
                         self._devices[device_str].brightness = brightness_result
                         self._devices[device_str].power_state = brightness_result > 0
@@ -583,7 +590,7 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].timestamp = self._utcnow()
                         self._devices[device_str].source = "history"
                         self._devices[device_str].color_temp = color_temp
         return success, err
@@ -619,7 +626,7 @@ class Govee(object):
                     if not err:
                         success = self._is_success_result_message(result)
                         if success:
-                            self._devices[device_str].timestamp = self._utcnow
+                            self._devices[device_str].timestamp = self._utcnow()
                             self._devices[device_str].source = "history"
                             self._devices[device_str].color = color
         return success, err
@@ -726,7 +733,7 @@ class Govee(object):
                     for prop in json_obj["data"]["properties"]:
                         # somehow these are all dicts with one element
                         if "online" in prop:
-                            prop_online = prop["online"] is True
+                            prop_online = prop["online"] in [True, "true"]
                         elif "powerState" in prop:
                             prop_power_state = prop["powerState"] == "on"
                         elif "brightness" in prop:
