@@ -1,5 +1,10 @@
 default_config:
 
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
 # enable remote python debugger
 debugpy:
 

@@ -1,8 +1,8 @@
-# 'Govee LED strips' integration
+# 'Govee' integration
 
 The Govee integration allows you to control and monitor lights using the Govee API.
 
-To set up this integration, click Configuration in the sidebar and then click Integrations. Click the + icon to add "Govee LED strips" to the integrations. An API key
+To set up this integration, click Configuration in the sidebar and then click Integrations. Click the + icon to add "Govee" to the integrations. An API key
 is necessary, you need to obtain it in the 'Govee Home' app on your mobile, in the User menu - About us - Apply for API Key. The key will be sent to you by email.
 
 ## Pulling or assuming state

@@ -1,12 +1,12 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
-	"image": "ludeeus/container:integration-debian",
+	"image": "ludeeus/container:python-base-debian",
 	"name": "Govee integration development",
 	"context": "..",
 	"appPort": [
 		"9123:8123"
 	],
-	"postCreateCommand": "container install && python3 -m pip install --upgrade pip && pip3 install -r /workspaces/hacs-govee/requirements_test.txt",
+	"postCreateCommand": "/bin/echo ------------ postCreateCommand apt-get ------------ && apt-get update && apt-get -y install libatomic1 wget unzip procps iputils-ping && /bin/echo ------------ postCreateCommand python/pip ------------ && /usr/local/bin/python3 -m pip install --upgrade pip && /usr/local/bin/pip3 install -r /workspaces/hacs-govee/requirements_test.txt && /bin/echo ------------ postCreateCommand container install ------------ && /usr/bin/container install && /bin/echo ------------ postCreateCommand symlink our component ------------ && /bin/mkdir -p /config/custom_components && /bin/ln -s /workspaces/hacs-govee/custom_components/govee /config/custom_components/govee && /bin/echo ------------ postCreateCommand install hacs ------------ && /bin/mkdir -p /config/custom_components/hacs && /usr/bin/wget https://github.com/hacs/integration/releases/latest/download/hacs.zip && /usr/bin/unzip hacs.zip -d /config/custom_components/hacs && /bin/rm hacs.zip && /bin/echo ------------ postCreateCommand finished ------------",
 	"extensions": [
 		"ms-python.python",
 		"github.vscode-pull-request-github",
@@ -29,6 +29,22 @@
 		"editor.formatOnPaste": false,
 		"editor.formatOnSave": true,
 		"editor.formatOnType": true,
-		"files.trimTrailingWhitespace": true
-	}
+		"files.trimTrailingWhitespace": true,
+		// to develop on your raspberry pi 4 (for BLE):
+		"docker.host": "ssh://root@192.168.144.5",
+		// also set docker.host for this workspace in vscode
+		// create keys with "ssh-keygen -t rsa -b 4096"
+		// also run this on your pi
+		// copy your local id-rsa.pub content to /root/.ssh/authorized_keys
+		// then configure remote-ssh to use key auth: "Remote-SSH: Open Configuration file":
+		// Host 192.168.144.5
+		//   HostName 192.168.144.5
+		//   User root
+		//   ForwardAgent yes
+		//   IdentityFile C:\Users\root\.ssh\id_rsa
+		// then in "Remote Containers: Re-build and re-open in container"
+	},
+	// also we need to clone source into the remote container, instead of bind:
+	"workspaceFolder": "/workspace",
+	"workspaceMount": "source=/usr/share/hassio/share/dev/hacs-govee,target=/workspace,type=volume",
 }

@@ -24,20 +24,19 @@
             "type": "shell",
             "command": "container set-version",
             "problemMatcher": []
-        }
-        // ,
+        }//,
         // {
         //     "label": "Run HASS",
         //     "type": "shell",
-        //     "command": "hass -c ./config",
-        //     "group": {
-        //         "kind": "test",
-        //         "isDefault": true
-        //     },
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "panel": "new"
-        //     },
+        //     "command": "hass -c /config",
+        //     // "group": {
+        //     //     "kind": "test",
+        //     //     "isDefault": true
+        //     // },
+        //     // "presentation": {
+        //     //     "reveal": "always",
+        //     //     "panel": "new"
+        //     // },
         //     "problemMatcher": []
         // }
     ]
