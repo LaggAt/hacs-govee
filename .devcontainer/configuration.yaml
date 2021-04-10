@@ -1,3 +1,6 @@
+http:
+  server_port: 9123
+
 # default_config:
 # no default config, be more specific and select from https://www.home-assistant.io/integrations/default_config/
 automation:
@@ -45,3 +48,14 @@ logger:
     custom_components.govee: debug
     govee_api_laggat: debug
     custom_components.hacs: warning
+    homeassistant.components.discovery: debug
+    homeassistant.components.zeroconf: debug
+    homeassistant.components.ssdp: debug
+    homeassistant.components.dhcp: debug
+
+
+device_tracker:
+  - platform: bluetooth_le_tracker
+    # avoid some log spam
+    interval_seconds: 60
+    track_new_devices: true
