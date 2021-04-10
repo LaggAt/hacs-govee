@@ -1,6 +1,8 @@
 {
+  "codeowners": ["@LaggAt"],
   "domain": "govee",
-  "name": "Govee LED strips",
+  "name": "Govee",
+  "version": "0.1.7",
   "config_flow": true,
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
@@ -8,6 +10,5 @@
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
-  "dependencies": [],
-  "codeowners": ["@LaggAt"]
+  "dependencies": []
 }

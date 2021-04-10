@@ -1,4 +1,38 @@
-default_config:
+# default_config:
+# no default config, be more specific and select from https://www.home-assistant.io/integrations/default_config/
+automation:
+# cloud:
+config:
+counter:
+dhcp:
+frontend:
+history:
+image:
+input_boolean:
+input_datetime:
+input_number:
+input_select:
+input_text:
+logbook:
+map:
+media_source:
+mobile_app:
+person:
+scene:
+script:
+ssdp:
+sun:
+system_health:
+tag:
+timer:
+updater:
+zeroconf:
+zone:
+
+#group: !include groups.yaml
+#automation: !include automations.yaml
+#script: !include scripts.yaml
+#scene: !include scenes.yaml
 
 # enable remote python debugger
 debugpy:
@@ -10,3 +44,4 @@ logger:
     homeassistant.components.govee: debug
     custom_components.govee: debug
     govee_api_laggat: debug
+    custom_components.hacs: warning

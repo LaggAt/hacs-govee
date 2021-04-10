@@ -20,8 +20,15 @@ CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 PLATFORMS = ["light"]
 
 
+def setup(hass, config):
+    """This setup does nothing, we use the async setup."""
+    hass.states.set("govee.state", "setup called")
+    return True
+
+
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the Govee LED strips component."""
+    hass.states.async_set("govee.state", "async_setup called")
     hass.data[DOMAIN] = {}
     return True
 

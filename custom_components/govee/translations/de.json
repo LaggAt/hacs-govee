@@ -1,5 +1,5 @@
 {
-  "title": "Govee LED Strips",
+  "title": "Govee",
   "config": {
     "abort": {
       "already_configured": "Bereits eingerichtet. Es ist nur eine Konfiguration möglich."
