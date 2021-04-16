@@ -9,7 +9,8 @@
 	// "containerEnv": {
 	// 	"WS_PATH": "/usr/share/hassio/share/dev/hacs-govee",
 	// },
-	"image": "ludeeus/container:python-base-debian",
+	"image": "laggat/hacs-base-container",
+	//"image": "ludeeus/container:python-base-debian",
 	//"vsch.local.folder": "/usr/share/hassio/share/dev/hacs-govee",
 	//"dockerFile": "Dockerfile",
 	"name": "Govee integration development",
@@ -18,16 +19,16 @@
 	// 	"9123:8123"
 	// ],
 	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
-	"extensions": [
-		"ms-python.python",
-		"github.vscode-pull-request-github",
-		"ryanluker.vscode-coverage-gutters",
-		"ms-python.vscode-pylance",
-		"littlefoxteam.vscode-python-test-adapter",
-		"hbenl.vscode-test-explorer",
-		"tht13.python",
-		"mhutchie.git-graph"
-	],
+	// COMMENTED FOR TESTING
+	// "extensions": [
+	// 	"github.vscode-pull-request-github",
+	// 	"ryanluker.vscode-coverage-gutters",
+	// 	"ms-python.vscode-pylance",
+	// 	"littlefoxteam.vscode-python-test-adapter",
+	// 	"hbenl.vscode-test-explorer",
+	// 	"tht13.python",
+	// 	"mhutchie.git-graph"
+	// ],
 	"settings": {
 		"files.eol": "\n",
 		"editor.tabSize": 4,
