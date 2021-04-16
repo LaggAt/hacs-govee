@@ -9,6 +9,7 @@
 	// "containerEnv": {
 	// 	"WS_PATH": "/usr/share/hassio/share/dev/hacs-govee",
 	// },
+	//"image": "laggat/hacs-base-container",
 	"image": "ludeeus/container:python-base-debian",
 	//"vsch.local.folder": "/usr/share/hassio/share/dev/hacs-govee",
 	//"dockerFile": "Dockerfile",
