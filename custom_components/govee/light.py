@@ -4,6 +4,7 @@ from datetime import timedelta
 import logging
 
 from govee_api_laggat import Govee, GoveeDevice, GoveeError
+from govee_api_laggat.govee_dtos import GoveeSource
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -243,7 +244,10 @@ class GoveeLightEntity(LightEntity):
 
         This can be disabled in options.
         """
-        return self._coordinator.use_assumed_state and self._device.source == "history"
+        return (
+            self._coordinator.use_assumed_state
+            and self._device.source == GoveeSource.HISTORY
+        )
 
     @property
     def available(self):

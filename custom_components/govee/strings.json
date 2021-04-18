@@ -20,13 +20,19 @@
     }
   },
   "options": {
+    "error": {
+      "cannot_connect": "Cannot connect. Is the API-Key correct and the internet connection working?",
+      "unknown": "Unknown Error.",
+      "disabled_attribute_updates_wrong": "Wrong format, see README above."
+    },
     "step": {
       "user": {
         "data": {
           "api_key": "API Key (requires restart)",
           "delay": "Poll Interval (requires restart)",
           "use_assumed_state": "Use 'assumed state' (two buttons). Default: True",
-          "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False"
+          "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False",
+          "disable_attribute_updates": "DISABLE state updates. Space to disable. Read the README above!"
         },
         "title": "Govee - Options",
         "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
