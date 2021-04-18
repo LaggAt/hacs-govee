@@ -5,14 +5,13 @@ import logging
 import time
 import math
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from datetime import datetime
 from events import Events
-from typing import Any, List, Optional, Tuple, Union
-
+from typing import Any, Dict, List, Optional, Tuple, Union
 import aiohttp
 
 from govee_api_laggat.__version__ import VERSION
+from govee_api_laggat.govee_dtos import GoveeDevice, GoveeSource
 from govee_api_laggat.learning_storage import (
     GoveeAbstractLearningStorage,
     GoveeLearnedInfo,
@@ -28,41 +27,14 @@ _API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
 _RATELIMIT_TOTAL = "Rate-Limit-Total"  # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = "Rate-Limit-Remaining"  # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limit window resets in UTC epoch seconds.
-_RATELIMIT_RESET_MAX_SECONDS = 180  # The maximum time in seconds to wait for a rate limit reset
+_RATELIMIT_RESET_MAX_SECONDS = (
+    180  # The maximum time in seconds to wait for a rate limit reset
+)
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
 # do not send another control within n seconds after controlling the device
 DELAY_SET_FOLLOWING_SET_SECONDS = 1
-
-@dataclass
-class GoveeDevice(object):
-    """ Govee Device DTO """
-
-    device: str
-    model: str
-    device_name: str
-    controllable: bool
-    retrievable: bool
-    support_cmds: List[str]
-    support_turn: bool
-    support_brightness: bool
-    support_color: bool
-    support_color_tem: bool
-    online: bool
-    power_state: bool
-    brightness: int
-    color: Tuple[int, int, int]
-    color_temp: int
-    timestamp: int
-    source: str
-    error: str
-    lock_set_until: int
-    lock_get_until: int
-    learned_set_brightness_max: int
-    learned_get_brightness_max: int
-    before_set_brightness_turn_on: bool
-    config_offline_is_off: bool # this is the learning config, possibly overridden by a global config
 
 
 class GoveeError(Exception):
@@ -98,6 +70,7 @@ class Govee(object):
         self._online = True  # assume we are online
         self.events = Events()
         self._api_key = api_key
+        self._ignore_fields = {GoveeSource.API: [], GoveeSource.HISTORY: []}
         self._devices = {}
         self._rate_limit_on = 5  # safe available call count for multiple processes
         self._limit = 100
@@ -174,8 +147,9 @@ class Govee(object):
             err = "error from aiohttp: %s" % repr(ex)
         except Exception as ex:
             err = "unknown error: %s" % repr(ex)
-        
+
         if err:
+
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -209,7 +183,7 @@ class Govee(object):
                 # reset rate limiting with maximum
                 limit_reset = self._utcnow() + _RATELIMIT_RESET_MAX_SECONDS
                 limit_reset_api = float(response.headers[_RATELIMIT_RESET])
-                if(limit_reset_api < limit_reset):
+                if limit_reset_api < limit_reset:
                     # api returns valid values for rate limit reset seconds
                     limit_reset = limit_reset_api
                 self._limit_reset = limit_reset
@@ -289,6 +263,98 @@ class Govee(object):
         """
         self._config_offline_is_off = val
 
+    def ignore_device_attributes(self, ignore_str: str):
+        """
+        Set a semicolon-separated list of properties to ignore from source API or HISTORY (which means: remembered values on commands)
+
+        Examples:
+        "API:online;HISTORY:power_state": ignore online from API, ignore power_state from HISTORY
+        "API:power_state": ignore power state from API
+        """
+        ignore_fields = {GoveeSource.API: [], GoveeSource.HISTORY: []}
+        is_ignored = False
+        if ignore_str:
+            pair_list = ignore_str.split(";")
+            for pair in pair_list:
+                pair = pair.strip()
+                if pair:
+                    pair_details = pair.split(":")
+                    if len(pair_details) != 2:
+                        raise GoveeError(
+                            "Format of '%s' is incorrect, use 'source:attribute;...'"
+                            % (pair,)
+                        )
+                    src, field = pair_details
+                    src = src.lower()
+                    field = field.lower()
+                    src_strings = {
+                        "api": GoveeSource.API,
+                        "history": GoveeSource.HISTORY,
+                    }
+                    if src not in src_strings:
+                        raise GoveeError(
+                            "Cannot disable attributes for source '%s' as source must be in %s."
+                            % (
+                                src,
+                                repr(src_strings.keys),
+                            )
+                        )
+                    if field not in GoveeDevice.__dataclass_fields__:
+                        raise GoveeError(
+                            "Cannot disable attribute '%s' as GoveeDevice does not have such an attribute. Available fields (not all work): "
+                            % (
+                                field,
+                                repr(GoveeDevice.__dataclass_fields__),
+                            )
+                        )
+                    if src not in ignore_fields[src_strings[src]]:
+                        ignore_fields[src_strings[src]].append(field)
+                        is_ignored = True
+        self._ignore_fields = ignore_fields
+        if is_ignored:
+            _LOGGER.warning(
+                "Set to ignore some attributes: %s", repr(self._ignore_fields)
+            )
+
+    def _update_state(
+        self,
+        source: GoveeSource,
+        device_str: Union[str, GoveeDevice],
+        field: str,
+        val: any,
+    ) -> bool:
+        """This is used to update state once it is created."""
+        device = self.device(device_str)
+        if device is None:
+            _LOGGER.warning(
+                "Device %s does not exist, cannot update state field %s to %s",
+                device.device,
+                field,
+                val,
+            )
+            return False
+        if field not in dir(device):
+            _LOGGER.warning(
+                "Field %s does not exist on device %s, cannot update to %s",
+                field,
+                device.device,
+                val,
+            )
+            return False
+        if field.lower() in self._ignore_fields[source]:
+            _LOGGER.warning(
+                "I do not set field %s on Device %s to %s because it is disabled by you.",
+                field,
+                device.device,
+                val,
+            )
+            # this is no error
+            return True
+        setattr(device, field, val)
+        device.source = source
+        device.timestamp = self._utcnow()
+        return True
+
     @property
     def devices(self) -> List[GoveeDevice]:
         """Cached devices list."""
@@ -297,7 +363,7 @@ class Govee(object):
             lst.append(self._devices[dev])
         return lst
 
-    def device(self, device) -> GoveeDevice:
+    def device(self, device: Union[str, GoveeDevice]) -> GoveeDevice:
         """Single device from cache."""
         _, device = self._get_device(device)
         return device
@@ -316,7 +382,7 @@ class Govee(object):
         if not online:
             # show all devices as offline
             for device in self.devices:
-                device.online = False
+                self._update_state(GoveeSource.API, device, "online", False)
 
     async def check_connection(self) -> bool:
         """Check connection to API."""
@@ -369,7 +435,7 @@ class Govee(object):
                     learned_set_brightness_max = None
                     learned_get_brightness_max = None
                     before_set_brightness_turn_on = False
-                    config_offline_is_off = False # effenctive state
+                    config_offline_is_off = False  # effenctive state
                     # defaults by some conditions
                     if not is_retrievable:
                         learned_get_brightness_max = -1
@@ -381,7 +447,9 @@ class Govee(object):
                         learning_info = learning_infos[device_str]
                         learned_set_brightness_max = learning_info.set_brightness_max
                         learned_get_brightness_max = learning_info.get_brightness_max
-                        before_set_brightness_turn_on = learning_info.before_set_brightness_turn_on
+                        before_set_brightness_turn_on = (
+                            learning_info.before_set_brightness_turn_on
+                        )
                         config_offline_is_off = learning_info.config_offline_is_off
 
                     # create device DTO
@@ -403,14 +471,14 @@ class Govee(object):
                         color=(0, 0, 0),
                         color_temp=0,
                         timestamp=timestamp,
-                        source="history",
+                        source=GoveeSource.HISTORY,
                         error=None,
                         lock_set_until=0,
                         lock_get_until=0,
                         learned_set_brightness_max=learned_set_brightness_max,
                         learned_get_brightness_max=learned_get_brightness_max,
                         before_set_brightness_turn_on=before_set_brightness_turn_on,
-                        config_offline_is_off=config_offline_is_off
+                        config_offline_is_off=config_offline_is_off,
                     )
             else:
                 result = await response.text()
@@ -421,7 +489,7 @@ class Govee(object):
 
     def _get_device(self, device: Union[str, GoveeDevice]) -> Tuple[str, GoveeDevice]:
         """Get a device by address or GoveeDevice DTO.
-        
+
         returns: device_address, device_dto
         """
         device_str = device
@@ -464,9 +532,9 @@ class Govee(object):
             if not err:
                 success = self._is_success_result_message(result)
                 if success:
-                    self._devices[device_str].timestamp = self._utcnow()
-                    self._devices[device_str].source = "history"
-                    self._devices[device_str].power_state = onOff == "on"
+                    self._update_state(
+                        GoveeSource.HISTORY, device, "power_state", onOff == "on"
+                    )
         return success, err
 
     async def set_brightness(
@@ -519,10 +587,15 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow()
-                        self._devices[device_str].source = "history"
-                        self._devices[device_str].brightness = brightness_result
-                        self._devices[device_str].power_state = brightness_result > 0
+                        self._update_state(
+                            GoveeSource.HISTORY, device, "brightness", brightness_result
+                        )
+                        self._update_state(
+                            GoveeSource.HISTORY,
+                            device,
+                            "power_state",
+                            brightness_result > 0,
+                        )
         return success, err
 
     async def _learn(self, device):
@@ -590,9 +663,9 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow()
-                        self._devices[device_str].source = "history"
-                        self._devices[device_str].color_temp = color_temp
+                        self._update_state(
+                            GoveeSource.HISTORY, device, "color_temp", color_temp
+                        )
         return success, err
 
     async def set_color(
@@ -626,9 +699,9 @@ class Govee(object):
                     if not err:
                         success = self._is_success_result_message(result)
                         if success:
-                            self._devices[device_str].timestamp = self._utcnow()
-                            self._devices[device_str].source = "history"
-                            self._devices[device_str].color = color
+                            self._update_state(
+                                GoveeSource.HISTORY, device, "color", color
+                            )
         return success, err
 
     def _get_lock_seconds(self, utcSeconds: int) -> int:
@@ -660,8 +733,10 @@ class Govee(object):
                 while True:
                     seconds_locked = self._get_lock_seconds(device.lock_set_until)
                     if not seconds_locked:
-                        break;
-                    _LOGGER.debug(f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}")
+                        break
+                    _LOGGER.debug(
+                        f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}"
+                    )
                     await asyncio.sleep(seconds_locked)
                 json = {"device": device.device, "model": device.model, "cmd": cmd}
                 await self.rate_limit_delay()
@@ -688,13 +763,14 @@ class Govee(object):
         for device_str in self._devices:
             state, err = await self._get_device_state(device_str)
             if err:
-                _LOGGER.warning("error getting state for device %s: %s",
-                    device_str, err,
+                _LOGGER.warning(
+                    "error getting state for device %s: %s",
+                    device_str,
+                    err,
                 )
-                self._devices[device_str].error = err
+                state.error = err
             else:
-                self._devices[device_str] = state
-                self._devices[device_str].error = None
+                state.error = None
         return self.devices
 
     async def _get_device_state(
@@ -709,11 +785,15 @@ class Govee(object):
             err = f"Invalid device {device_str}"
         elif not device.retrievable:
             # device {device_str} isn't able to return state, return 'history' state
-            self._devices[device_str].source = "history"
+            self._update_state(
+                GoveeSource.HISTORY, device_str, "source", GoveeSource.HISTORY
+            )
             result = self._devices[device_str]
         elif seconds_locked:
             # we just changed something, return state from history
-            self._devices[device_str].source = "history"
+            self._update_state(
+                GoveeSource.HISTORY, device_str, "source", GoveeSource.HISTORY
+            )
             result = self._devices[device_str]
             _LOGGER.debug(
                 f"state object returned from cache: {result}, next state for {device.device} from api allowed in {seconds_locked} seconds"
@@ -748,7 +828,7 @@ class Govee(object):
                             prop_color_temp = prop["colorTemInKelvin"]
                         else:
                             _LOGGER.debug(f"unknown state property '{prop}'")
-                    
+
                     if not prop_online:
                         if self.config_offline_is_off is not None:
                             # global option
@@ -771,17 +851,21 @@ class Govee(object):
                         await self._learn(device)
                     if device.learned_get_brightness_max == 100:
                         # scale range 0-100 up to 0-254
-                        prop_brightness = math.floor( prop_brightness * 254 / 100 )
+                        prop_brightness = math.floor(prop_brightness * 254 / 100)
 
+                    self._update_state(GoveeSource.API, device, "error", None)
+                    self._update_state(GoveeSource.API, device, "online", prop_online)
+                    self._update_state(
+                        GoveeSource.API, device, "power_state", prop_power_state
+                    )
+                    self._update_state(
+                        GoveeSource.API, device, "brightness", prop_brightness
+                    )
+                    self._update_state(GoveeSource.API, device, "color", prop_color)
+                    self._update_state(
+                        GoveeSource.API, device, "color_temp", prop_color_temp
+                    )
                     result = self._devices[device_str]
-                    result.online = prop_online
-                    result.power_state = prop_power_state
-                    result.brightness = prop_brightness
-                    result.color = prop_color
-                    result.color_temp = prop_color_temp
-                    result.timestamp = timestamp
-                    result.source = "api"
-                    result.error = None
 
                     _LOGGER.debug(
                         f"state returned from API: {json_obj}, resulting state object: {result}"
