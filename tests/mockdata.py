@@ -1,7 +1,7 @@
 import copy
 import queue
 
-from govee_api_laggat import GoveeDevice, GoveeLearnedInfo
+from govee_api_laggat import GoveeDevice, GoveeLearnedInfo, GoveeSource
 
 API_URL = "https://developer-api.govee.com"
 API_KEY = "SUPER_SECRET_KEY"
@@ -50,7 +50,7 @@ DUMMY_DEVICE_H6163 = GoveeDevice(
     color=(139, 0, 255),
     color_temp=0,
     timestamp=0,
-    source="api",  # this device supports status
+    source=GoveeSource.API,  # this device supports status
     error=None,
     lock_set_until=0,
     lock_get_until=0,
@@ -76,7 +76,7 @@ DUMMY_DEVICE_H6104 = GoveeDevice(
     color=(0, 0, 0),
     color_temp=0,
     timestamp=0,
-    source="history",
+    source=GoveeSource.HISTORY,
     error=None,
     lock_set_until=0,
     lock_get_until=0,
