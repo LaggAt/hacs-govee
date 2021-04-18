@@ -6,7 +6,7 @@
   "config_flow": true,
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
-  "requirements": ["govee-api-laggat==0.1.39", "dacite==1.6.0"],
+  "requirements": ["govee-api-laggat==0.1.40", "dacite==1.6.0"],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
