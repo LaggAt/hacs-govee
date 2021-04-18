@@ -2,7 +2,7 @@
   "codeowners": ["@LaggAt"],
   "domain": "govee",
   "name": "Govee",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "config_flow": true,
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",

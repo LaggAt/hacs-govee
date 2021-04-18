@@ -4,6 +4,6 @@
     "domains": [
         "light"
     ],
-    "iot_class": "Cloud Polling",
+    "iot_class": ["Assumed State", "Cloud Polling"],
     "homeassistant": "0.118.4"
 }
