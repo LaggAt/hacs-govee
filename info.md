@@ -46,7 +46,7 @@ Thank you!
 [buymecoffee]: https://www.buymeacoffee.com/LaggAt
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
 [hacs]: https://github.com/custom-components/hacs
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [exampleimg]: example.png
 [license-shield]: https://img.shields.io/github/license/LaggAt/hacs-govee
 [maintenance-shield]: https://img.shields.io/badge/maintainer-Florian%20Lagg-blue.svg?style=for-the-badge
