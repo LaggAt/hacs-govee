@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from events import Events
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+import os
 
 import aiohttp
 
@@ -17,6 +18,8 @@ from govee_api_laggat.learning_storage import (
     GoveeAbstractLearningStorage,
     GoveeLearnedInfo,
 )
+from govee_btled import BluetoothLED
+import pygatt
 
 _LOGGER = logging.getLogger(__name__)
 _API_BASE_URL = "https://developer-api.govee.com"
@@ -28,6 +31,7 @@ _API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
 _RATELIMIT_TOTAL = "Rate-Limit-Total"  # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = "Rate-Limit-Remaining"  # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limit window resets in UTC epoch seconds.
+_RATELIMIT_RESET_MAX_SECONDS = 180  # The maximum time in seconds to wait for a rate limit reset
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
@@ -205,7 +209,13 @@ class Govee(object):
             try:
                 self._limit = int(response.headers[_RATELIMIT_TOTAL])
                 self._limit_remaining = int(response.headers[_RATELIMIT_REMAINING])
-                self._limit_reset = float(response.headers[_RATELIMIT_RESET])
+                # reset rate limiting with maximum
+                limit_reset = self._utcnow() + _RATELIMIT_RESET_MAX_SECONDS
+                limit_reset_api = float(response.headers[_RATELIMIT_RESET])
+                if(limit_reset_api < limit_reset):
+                    # api returns valid values for rate limit reset seconds
+                    limit_reset = limit_reset_api
+                self._limit_reset = limit_reset
                 _LOGGER.debug(
                     f"Rate limit total: {self._limit}, remaining: {self._limit_remaining} in {self.rate_limit_reset_seconds} seconds"
                 )
@@ -340,11 +350,27 @@ class Govee(object):
                 err = f"API-Error {response.status}: {result}"
         return ping_ok_delay, err
 
+    # testing here
+    def get_devices_ble(self):
+        # bluetooth try
+        if os.name != 'nt':
+            try:
+                adapter = pygatt.GATTToolBackend()
+                adapter.connect('A4:C1:38:46:7A:1C')
+                devices = adapter.scan(run_as_root=False, timeout=3)
+            
+            except Exception as ex:
+                bt_err = repr(ex)
+                do_wifi = True
+
+
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
         _LOGGER.debug("get_devices")
         devices = {}
         err = None
+
+        ble_devices = self.get_devices_ble()
 
         async with self._api_get(url=_API_DEVICES) as response:
             if response.status == 200:
@@ -457,7 +483,7 @@ class Govee(object):
             if not err:
                 success = self._is_success_result_message(result)
                 if success:
-                    self._devices[device_str].timestamp = self._utcnow
+                    self._devices[device_str].timestamp = self._utcnow()
                     self._devices[device_str].source = "history"
                     self._devices[device_str].power_state = onOff == "on"
         return success, err
@@ -512,7 +538,7 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].timestamp = self._utcnow()
                         self._devices[device_str].source = "history"
                         self._devices[device_str].brightness = brightness_result
                         self._devices[device_str].power_state = brightness_result > 0
@@ -583,7 +609,7 @@ class Govee(object):
                 if not err:
                     success = self._is_success_result_message(result)
                     if success:
-                        self._devices[device_str].timestamp = self._utcnow
+                        self._devices[device_str].timestamp = self._utcnow()
                         self._devices[device_str].source = "history"
                         self._devices[device_str].color_temp = color_temp
         return success, err
@@ -619,7 +645,7 @@ class Govee(object):
                     if not err:
                         success = self._is_success_result_message(result)
                         if success:
-                            self._devices[device_str].timestamp = self._utcnow
+                            self._devices[device_str].timestamp = self._utcnow()
                             self._devices[device_str].source = "history"
                             self._devices[device_str].color = color
         return success, err
