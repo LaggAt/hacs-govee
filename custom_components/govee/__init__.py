@@ -82,7 +82,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     unload_ok = all(
         await asyncio.gather(
             *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
+                await _unload_component_entry(hass, entry, component)
                 for component in PLATFORMS
             ]
         )
@@ -93,3 +93,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         await hub.close()
 
     return unload_ok
+
+
+async def _unload_component_entry(
+    hass: HomeAssistant, entry: ConfigEntry, component: str
+) -> bool:
+    """Unload an entry for a specific component."""
+    success = False
+    try:
+        success = await hass.config_entries.async_forward_entry_unload(entry, component)
+    except ValueError:
+        # probably ValueError: Config entry was never loaded!
+        return success
+    except Exception as ex:
+        _LOGGER.warning(
+            "Continuing on exception when unloading %s component's entry: %s",
+            component,
+            ex,
+        )
+        return success
