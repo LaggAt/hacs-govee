@@ -6,6 +6,7 @@
     "justMyCode": false,
     "configurations": [
         {
+            "envFile": "${workspaceFolder}/.env",
             "name": "run /example/turn_on_before_bright.py",
             "type": "python",
             "request": "launch",

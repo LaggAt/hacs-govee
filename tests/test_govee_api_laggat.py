@@ -10,6 +10,7 @@ from govee_api_laggat import (
     GoveeAbstractLearningStorage,
     GoveeDevice,
     GoveeLearnedInfo,
+    GoveeSource
 )
 
 from .mockdata import *
@@ -568,6 +569,6 @@ class GoveeTests(TestCase):
 
         states = loop.run_until_complete(turn_on_and_get_state())
         # assert
-        assert states[0].source == "history"
+        assert states[0].source == GoveeSource.HISTORY
         assert mock_put.call_count == 1
         assert mock_get.call_count == 0  # may not get state

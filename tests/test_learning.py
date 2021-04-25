@@ -13,6 +13,7 @@ from govee_api_laggat import (
     GoveeAbstractLearningStorage,
     GoveeDevice,
     GoveeLearnedInfo,
+    GoveeSource
 )
 
 from .mockdata import *
@@ -201,7 +202,7 @@ async def test_autobrightness_set100_get254(mock_aiohttp, mock_never_lock):
         states = await govee.get_states()
         # assert
         assert mock_aiohttp_responses.empty()
-        assert states[0].source == "api"
+        assert states[0].source == GoveeSource.API
         assert states[0].brightness == 142
         assert learning_storage.write_test_data == {
             DUMMY_DEVICE_H6163.device: GoveeLearnedInfo(
@@ -290,7 +291,7 @@ async def test_autobrightness_set254_get100_get254(mock_aiohttp, mock_never_lock
         states = await govee.get_states()
         # assert
         assert mock_aiohttp_responses.empty()
-        assert states[0].source == "api"
+        assert states[0].source == GoveeSource.API
         assert states[0].brightness == 42 * 254 // 100
         assert learning_storage.write_test_data == {
             DUMMY_DEVICE_H6163.device: GoveeLearnedInfo(
@@ -328,7 +329,7 @@ async def test_autobrightness_set254_get100_get254(mock_aiohttp, mock_never_lock
         states = await govee.get_states()
         # assert
         assert mock_aiohttp_responses.empty()
-        assert states[0].source == "api"
+        assert states[0].source == GoveeSource.API
         assert states[0].brightness == 142
         assert learning_storage.write_test_data == {
             DUMMY_DEVICE_H6163.device: GoveeLearnedInfo(
@@ -676,4 +677,86 @@ async def test_globalOfflineIsOffConfig_off(mock_aiohttp, mock_never_lock):
         assert not err
         assert govee.device(DUMMY_DEVICE_H6163.device).power_state == False
         assert govee.device(DUMMY_DEVICE_H6163.device).online == False
+        
+@pytest.mark.asyncio
+async def test_set_disabled_state(mock_aiohttp, mock_never_lock):
+    # arrange
+    learning_storage = LearningStorage(copy.deepcopy(LEARNED_NOTHING))
+
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # request devices list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 1
+
+        # configure to ignore brightness from history (this test doesn't retrieve API data)
+        assert lamps[0].brightness == 0
+        assert lamps[0].power_state == False
+        govee.ignore_device_attributes("History:brightness;API:power_state")
+
+        # set brightness to 142, which is OK for a 0-254 device
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    "cmd": {"name": "brightness", "value": 142},
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        success, err = await govee.set_brightness(DUMMY_DEVICE_H6163.device, 142)
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        # all state came from HISTORY, so brightness has not changed
+        assert lamps[0].brightness == 0
+        assert lamps[0].power_state == True
+
+        # configure to ignore power_state from history (this test doesn't retrieve API data)
+        lamps[0].brightness = 0
+        lamps[0].power_state = False
+        govee.ignore_device_attributes("API:brightness;HISTORY:power_state")
+        # set brightness to 142, which is OK for a 0-254 device
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                status=200,
+                json={"code": 200, "message": "Success", "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices/control"
+                and kwargs["json"]
+                == {
+                    "cmd": {"name": "brightness", "value": 142},
+                    "device": "40:83:FF:FF:FF:FF:FF:FF",
+                    "model": "H6163",
+                },
+            )
+        )
+        # call
+        success, err = await govee.set_brightness(DUMMY_DEVICE_H6163.device, 142)
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert success
+        assert not err
+        # all state came from HISTORY, so brightness has not changed
+        assert lamps[0].brightness == 142
+        assert lamps[0].power_state == False
+
         
