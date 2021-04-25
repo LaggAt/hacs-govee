@@ -19,16 +19,18 @@
 	// 	"9123:8123"
 	// ],
 	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
-	// COMMENTED FOR TESTING
-	// "extensions": [
-	// 	"github.vscode-pull-request-github",
-	// 	"ryanluker.vscode-coverage-gutters",
-	// 	"ms-python.vscode-pylance",
-	// 	"littlefoxteam.vscode-python-test-adapter",
-	// 	"hbenl.vscode-test-explorer",
-	// 	"tht13.python",
-	// 	"mhutchie.git-graph"
-	// ],
+	"extensions": [
+		"cschleiden.vscode-github-actions",
+		"github.vscode-pull-request-github",
+		"hbenl.vscode-test-explorer",
+		"knisterpeter.vscode-github",
+		"littlefoxteam.vscode-python-test-adapter",
+		"mhutchie.git-graph",
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"ryanluker.vscode-coverage-gutters",
+		"tht13.python",
+	],
 	"settings": {
 		"files.eol": "\n",
 		"editor.tabSize": 4,

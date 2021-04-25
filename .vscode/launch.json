@@ -8,8 +8,7 @@
             "name": "Launch Home Assistant UI in Chrome",
             "request": "launch",
             "type": "pwa-chrome",
-            "url": "http://192.168.144.5:9123
-            ",
+            "url": "http://192.168.144.5:9123",
             "webRoot": "${workspaceFolder}"
         },
         {
