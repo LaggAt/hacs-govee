@@ -1,6 +1,5 @@
 """Test the Govee config flow."""
 from homeassistant import config_entries, setup
-from custom_components.govee.config_flow import CannotConnect
 from custom_components.govee.const import DOMAIN
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
 from homeassistant.core import HomeAssistant

@@ -4,7 +4,7 @@ coveralls
 dacite==1.6.0
 flake8
 govee_api_laggat
-homeassistant==2021.4.0b4
+homeassistant==2021.4.6
 pylint==2.6.0
 pytest
 pytest-cov
