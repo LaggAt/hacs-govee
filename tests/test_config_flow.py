@@ -2,9 +2,10 @@
 from homeassistant import config_entries, setup
 from custom_components.govee.const import DOMAIN
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
+from homeassistant.core import HomeAssistant
 
 # from tests.async_mock import patch
-from pytest_homeassistant_custom_component.async_mock import patch
+from unittest.mock import patch
 
 
 async def test_form(hass):
@@ -54,7 +55,7 @@ async def test_form_cannot_connect(hass):
         )
 
     assert result2["type"] == "form"
-    assert result2["errors"] == {"base": "cannot_connect"}
+    assert result2["errors"] == {"api_key": "cannot_connect"}
 
 
 async def test_form_unknown_exception(hass):
