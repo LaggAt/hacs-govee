@@ -422,64 +422,66 @@ class Govee(object):
         async with self._api_get(url=_API_DEVICES) as response:
             if response.status == 200:
                 result = await response.json()
-                timestamp = self._utcnow()
+                if "data" in result and "devices" in result["data"]:
+                    timestamp = self._utcnow()
+                    learning_infos = await self._learning_storage._read_cached()
 
-                learning_infos = await self._learning_storage._read_cached()
+                    for item in result["data"]["devices"]:
+                        device_str = item["device"]
+                        model_str = item["model"]
+                        is_retrievable = item["retrievable"]
 
-                for item in result["data"]["devices"]:
-                    device_str = item["device"]
-                    model_str = item["model"]
-                    is_retrievable = item["retrievable"]
+                        # assuming defaults for learned/configured values
+                        learned_set_brightness_max = None
+                        learned_get_brightness_max = None
+                        before_set_brightness_turn_on = False
+                        config_offline_is_off = False  # effenctive state
+                        # defaults by some conditions
+                        if not is_retrievable:
+                            learned_get_brightness_max = -1
+                        if model_str == "H6104":
+                            before_set_brightness_turn_on = True
 
-                    # assuming defaults for learned/configured values
-                    learned_set_brightness_max = None
-                    learned_get_brightness_max = None
-                    before_set_brightness_turn_on = False
-                    config_offline_is_off = False  # effenctive state
-                    # defaults by some conditions
-                    if not is_retrievable:
-                        learned_get_brightness_max = -1
-                    if model_str == "H6104":
-                        before_set_brightness_turn_on = True
+                        # load learned/configured values
+                        if device_str in learning_infos:
+                            learning_info = learning_infos[device_str]
+                            learned_set_brightness_max = learning_info.set_brightness_max
+                            learned_get_brightness_max = learning_info.get_brightness_max
+                            before_set_brightness_turn_on = (
+                                learning_info.before_set_brightness_turn_on
+                            )
+                            config_offline_is_off = learning_info.config_offline_is_off
 
-                    # load learned/configured values
-                    if device_str in learning_infos:
-                        learning_info = learning_infos[device_str]
-                        learned_set_brightness_max = learning_info.set_brightness_max
-                        learned_get_brightness_max = learning_info.get_brightness_max
-                        before_set_brightness_turn_on = (
-                            learning_info.before_set_brightness_turn_on
+                        # create device DTO
+                        devices[device_str] = GoveeDevice(
+                            device=device_str,
+                            model=model_str,
+                            device_name=item["deviceName"],
+                            controllable=item["controllable"],
+                            retrievable=is_retrievable,
+                            support_cmds=item["supportCmds"],
+                            support_turn="turn" in item["supportCmds"],
+                            support_brightness="brightness" in item["supportCmds"],
+                            support_color="color" in item["supportCmds"],
+                            support_color_tem="colorTem" in item["supportCmds"],
+                            # defaults for state
+                            online=True,
+                            power_state=False,
+                            brightness=0,
+                            color=(0, 0, 0),
+                            color_temp=0,
+                            timestamp=timestamp,
+                            source=GoveeSource.HISTORY,
+                            error=None,
+                            lock_set_until=0,
+                            lock_get_until=0,
+                            learned_set_brightness_max=learned_set_brightness_max,
+                            learned_get_brightness_max=learned_get_brightness_max,
+                            before_set_brightness_turn_on=before_set_brightness_turn_on,
+                            config_offline_is_off=config_offline_is_off,
                         )
-                        config_offline_is_off = learning_info.config_offline_is_off
-
-                    # create device DTO
-                    devices[device_str] = GoveeDevice(
-                        device=device_str,
-                        model=model_str,
-                        device_name=item["deviceName"],
-                        controllable=item["controllable"],
-                        retrievable=is_retrievable,
-                        support_cmds=item["supportCmds"],
-                        support_turn="turn" in item["supportCmds"],
-                        support_brightness="brightness" in item["supportCmds"],
-                        support_color="color" in item["supportCmds"],
-                        support_color_tem="colorTem" in item["supportCmds"],
-                        # defaults for state
-                        online=True,
-                        power_state=False,
-                        brightness=0,
-                        color=(0, 0, 0),
-                        color_temp=0,
-                        timestamp=timestamp,
-                        source=GoveeSource.HISTORY,
-                        error=None,
-                        lock_set_until=0,
-                        lock_get_until=0,
-                        learned_set_brightness_max=learned_set_brightness_max,
-                        learned_get_brightness_max=learned_get_brightness_max,
-                        before_set_brightness_turn_on=before_set_brightness_turn_on,
-                        config_offline_is_off=config_offline_is_off,
-                    )
+                else:
+                    err = f"API-Error {response.status}: {result}"
             else:
                 result = await response.text()
                 err = f"API-Error {response.status}: {result}"
