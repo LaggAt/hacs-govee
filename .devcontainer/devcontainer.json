@@ -20,14 +20,16 @@
 	// ],
 	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
 	"extensions": [
-		"ms-python.python",
+		"cschleiden.vscode-github-actions",
 		"github.vscode-pull-request-github",
-		"ryanluker.vscode-coverage-gutters",
-		"ms-python.vscode-pylance",
-		"littlefoxteam.vscode-python-test-adapter",
 		"hbenl.vscode-test-explorer",
+		"knisterpeter.vscode-github",
+		"littlefoxteam.vscode-python-test-adapter",
+		"mhutchie.git-graph",
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"ryanluker.vscode-coverage-gutters",
 		"tht13.python",
-		"mhutchie.git-graph"
 	],
 	"settings": {
 		"files.eol": "\n",

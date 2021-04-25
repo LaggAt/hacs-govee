@@ -5,6 +5,14 @@ The Govee integration allows you to control and monitor lights using the Govee A
 To set up this integration, click Configuration in the sidebar and then click Integrations. Click the + icon to add "Govee" to the integrations. An API key
 is necessary, you need to obtain it in the 'Govee Home' app on your mobile, in the User menu - About us - Apply for API Key. The key will be sent to you by email.
 
+## Sponsor
+
+A lot of effort is going into that integration. So if you can afford it and want to support us:
+
+<a href="https://www.buymeacoffee.com/LaggAt" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+Thank you!
+
 ## Pulling or assuming state
 
 Some devices do not support pulling state. In this case we assume the state on your last input.
