@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from events import Events
 from typing import Any, Dict, List, Optional, Tuple, Union
+import os
+
 import aiohttp
 
 from govee_api_laggat.__version__ import VERSION
@@ -27,9 +29,7 @@ _API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
 _RATELIMIT_TOTAL = "Rate-Limit-Total"  # The maximum number of requests you're permitted to make per minute.
 _RATELIMIT_REMAINING = "Rate-Limit-Remaining"  # The number of requests remaining in the current rate limit window.
 _RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limit window resets in UTC epoch seconds.
-_RATELIMIT_RESET_MAX_SECONDS = (
-    180  # The maximum time in seconds to wait for a rate limit reset
-)
+_RATELIMIT_RESET_MAX_SECONDS = 180  # The maximum time in seconds to wait for a rate limit reset
 
 # return state from hisory for n seconds after controlling the device
 DELAY_GET_FOLLOWING_SET_SECONDS = 2
@@ -149,7 +149,6 @@ class Govee(object):
             err = "unknown error: %s" % repr(ex)
 
         if err:
-
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -412,7 +411,7 @@ class Govee(object):
                 result = await response.text()
                 err = f"API-Error {response.status}: {result}"
         return ping_ok_delay, err
-
+    
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
         _LOGGER.debug("get_devices")
@@ -422,7 +421,7 @@ class Govee(object):
         async with self._api_get(url=_API_DEVICES) as response:
             if response.status == 200:
                 result = await response.json()
-                if "data" in result and "devices" in result["data"]:
+                if "data" in result and "devices" in result["data"] and isinstance(result["data"]["devices"], list):
                     timestamp = self._utcnow()
                     learning_infos = await self._learning_storage._read_cached()
 
@@ -729,7 +728,7 @@ class Govee(object):
                 err = f"Device {device.device} is not controllable"
                 _LOGGER.debug(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
-                err = f"Command {command} not possible on device {device.device}"
+                err = f"Command {command} not in supported commands on device {device.device}"
                 _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
                 while True:
@@ -756,7 +755,7 @@ class Govee(object):
                     else:
                         text = await response.text()
                         err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
-                        _LOGGER.warning(f"control {device_str} not possible: {err}")
+                        _LOGGER.warning(f"control {device_str} failed: {err}")
         return result, err
 
     async def get_states(self) -> List[GoveeDevice]:
