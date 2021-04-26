@@ -18,8 +18,6 @@ from govee_api_laggat.learning_storage import (
     GoveeAbstractLearningStorage,
     GoveeLearnedInfo,
 )
-from govee_btled import BluetoothLED
-import pygatt
 
 _LOGGER = logging.getLogger(__name__)
 _API_BASE_URL = "https://developer-api.govee.com"
@@ -151,7 +149,6 @@ class Govee(object):
             err = "unknown error: %s" % repr(ex)
 
         if err:
-
             class error_response:
                 def __init__(self, err_msg):
                     self._err_msg = err_msg
@@ -414,33 +411,17 @@ class Govee(object):
                 result = await response.text()
                 err = f"API-Error {response.status}: {result}"
         return ping_ok_delay, err
-
-    # testing here
-    def get_devices_ble(self):
-        # bluetooth try
-        if os.name != 'nt':
-            try:
-                adapter = pygatt.GATTToolBackend()
-                adapter.connect('A4:C1:38:46:7A:1C')
-                devices = adapter.scan(run_as_root=False, timeout=3)
-            
-            except Exception as ex:
-                bt_err = repr(ex)
-                do_wifi = True
-
-
+    
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
         _LOGGER.debug("get_devices")
         devices = {}
         err = None
 
-        ble_devices = self.get_devices_ble()
-
         async with self._api_get(url=_API_DEVICES) as response:
             if response.status == 200:
                 result = await response.json()
-                if "data" in result and "devices" in result["data"]:
+                if "data" in result and "devices" in result["data"] and isinstance(result["data"]["devices"], list):
                     timestamp = self._utcnow()
                     learning_infos = await self._learning_storage._read_cached()
 
@@ -747,7 +728,7 @@ class Govee(object):
                 err = f"Device {device.device} is not controllable"
                 _LOGGER.debug(f"control {device_str} not possible: {err}")
             elif not command in device.support_cmds:
-                err = f"Command {command} not possible on device {device.device}"
+                err = f"Command {command} not in supported commands on device {device.device}"
                 _LOGGER.warning(f"control {device_str} not possible: {err}")
             else:
                 while True:
@@ -774,7 +755,7 @@ class Govee(object):
                     else:
                         text = await response.text()
                         err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
-                        _LOGGER.warning(f"control {device_str} not possible: {err}")
+                        _LOGGER.warning(f"control {device_str} failed: {err}")
         return result, err
 
     async def get_states(self) -> List[GoveeDevice]:
