@@ -2,7 +2,7 @@
 
 import logging
 
-from govee_api_laggat import Govee
+from govee_api_laggat import Govee, GoveeNoLearningStorage
 from govee_api_laggat.govee_api_laggat import GoveeError
 
 from homeassistant import config_entries, core, exceptions
@@ -26,7 +26,7 @@ async def validate_api_key(hass: core.HomeAssistant, user_input):
     Return info that you want to store in the config entry.
     """
     api_key = user_input[CONF_API_KEY]
-    async with Govee(api_key) as hub:
+    async with Govee(api_key, learning_storage=GoveeNoLearningStorage()) as hub:
         _, error = await hub.get_devices()
         if error:
             raise CannotConnect(error)
@@ -43,7 +43,7 @@ async def validate_disabled_attribute_updates(hass: core.HomeAssistant, user_inp
     disable_str = user_input[CONF_DISABLE_ATTRIBUTE_UPDATES]
     if disable_str:
         # we have something to check, connect without API key
-        async with Govee("") as hub:
+        async with Govee("", learning_storage=GoveeNoLearningStorage()) as hub:
             # this will throw an GoveeError if something fails
             hub.ignore_device_attributes(disable_str)
 
