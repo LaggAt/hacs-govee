@@ -51,3 +51,16 @@ class GoveeAbstractLearningStorage(object):
         _LOGGER.warning(
             "Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties."
         )
+
+class GoveeNoLearningStorage(GoveeAbstractLearningStorage):
+    """Use to start without a learning storage.
+    
+    You may want to use this to check if API key is correct or so.
+    This avoids creating warnings about no storage available.
+    """
+
+    async def read(self) -> Dict[str, GoveeLearnedInfo]:
+        return {}
+
+    async def write(self, learned_info: Dict[str, GoveeLearnedInfo]):
+        pass
