@@ -426,7 +426,7 @@ class Govee(object):
 
                     for item in result["data"]["devices"]:
                         device_str = item["device"]
-                        if device_str in self._devices:
+                        if device_str in self._devices.keys():
                             # already in list
                             continue
                         model_str = item["model"]
