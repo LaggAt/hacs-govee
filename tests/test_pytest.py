@@ -1,21 +1,22 @@
-import asyncio
-import queue
-import unittest
-from datetime import datetime
-from time import time
-from typing import Dict
-
-import pytest
 from aiohttp import ClientSession
+import asyncio
+from datetime import datetime
+import logging
+import pytest
+import queue
+from time import time
+from typing import Any, Dict
+import unittest
+from unittest.mock import MagicMock
 
 from govee_api_laggat import (
     Govee,
     GoveeAbstractLearningStorage,
     GoveeDevice,
+    GoveeNoLearningStorage,
     GoveeLearnedInfo,
     GoveeSource
 )
-
 from .mockdata import *
 
 
@@ -75,6 +76,40 @@ def mock_never_lock(monkeypatch):
     monkeypatch.setattr(
         "govee_api_laggat.Govee._get_lock_seconds", mock_never_lock_result
     )
+
+# class LoggerMock(MagicMock):
+#     def __init__(self, *args: Any, **kw: Any) -> None:
+#         super().__init__(*args, **kw)
+#         self.calls = []
+
+#     def debug(self, *args, **kwargs):
+#         self.calls.append({
+#             "debug", args, kwargs
+#         })
+
+#     def info(self, *args, **kwargs):
+#         self.calls.append({
+#             "info", args, kwargs
+#         })
+
+#     def warning(self, *args, **kwargs):
+#         self.calls.append({
+#             "warning", args, kwargs
+#         })
+        
+#     def error(self, *args, **kwargs):
+#         self.calls.append({
+#             "error", args, kwargs
+#         })
+
+@pytest.fixture
+def mock_logger(monkeypatch):
+    mock = MagicMock()
+    mock.mock_add_spec(logging.Logger)
+    monkeypatch.setattr(
+        'govee_api_laggat.govee_api_laggat._LOGGER', mock
+    )
+    return mock
 
 
 @pytest.mark.asyncio
@@ -759,4 +794,112 @@ async def test_set_disabled_state(mock_aiohttp, mock_never_lock):
         assert lamps[0].brightness == 142
         assert lamps[0].power_state == False
 
+@pytest.mark.asyncio
+async def test_getNoDevices_initOK(mock_aiohttp, mock_never_lock, mock_logger):
+    """
+    We can connect the API, but there is not device registered.
+    Nothing is wront with that, user may add devices later.
+    """
+    # arrange
+    learning_storage = GoveeNoLearningStorage()
+
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # request devices list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"code": 200, "message": "success",  "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 0
+        expected_log_info_args = (
+            "API is connected, but there are no devices connected via Govee API. You may want to use Govee Home to pair your devices and connect them to WIFI.",
+        )
+        assert expected_log_info_args in [call.args for call in mock_logger.info.mock_calls]
+
+        cached_devices = govee.devices
+        assert cached_devices == []
+
+@pytest.mark.asyncio
+async def test_getDevicesTwice_keepOrAddDevices(mock_aiohttp, mock_never_lock):
+    """
+    when get_devices() is called twice, keep devices already known without altering.
+    devices once in list will never be removed (until restart).
+    """
+    # arrange
+    learning_storage = GoveeNoLearningStorage()
+
+    # act
+    async with Govee(API_KEY, learning_storage=learning_storage) as govee:
+        # empty device list
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"code": 200, "message": "success",  "data": {}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 0
+        
+        # one device
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 1
+        lamp0 = lamps[0]
+
+        # another device
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6104)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 2
+        assert lamp0 is lamps[0]
+        lamp1 = lamps[1]
+
+        # both devices
+        mock_aiohttp_responses.put(
+            MockAiohttpResponse(
+                json={"data": {"devices": [copy.deepcopy(JSON_DEVICE_H6104), copy.deepcopy(JSON_DEVICE_H6163)]}},
+                check_kwargs=lambda kwargs: kwargs["url"]
+                == "https://developer-api.govee.com/v1/devices",
+            )
+        )
+        # call
+        lamps, err = await govee.get_devices()
+        # assert
+        assert mock_aiohttp_responses.empty()
+        assert not err
+        assert len(lamps) == 2
+        assert lamp0 is lamps[0]
+        assert lamp1 is lamps[1]
         
