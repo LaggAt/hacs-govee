@@ -415,7 +415,6 @@ class Govee(object):
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
         _LOGGER.debug("get_devices")
-        devices = {}
         err = None
 
         async with self._api_get(url=_API_DEVICES) as response:
@@ -427,6 +426,9 @@ class Govee(object):
 
                     for item in result["data"]["devices"]:
                         device_str = item["device"]
+                        if device_str in self._devices:
+                            # already in list
+                            continue
                         model_str = item["model"]
                         is_retrievable = item["retrievable"]
 
@@ -452,7 +454,7 @@ class Govee(object):
                             config_offline_is_off = learning_info.config_offline_is_off
 
                         # create device DTO
-                        devices[device_str] = GoveeDevice(
+                        self._devices[device_str] = GoveeDevice(
                             device=device_str,
                             model=model_str,
                             device_name=item["deviceName"],
@@ -480,12 +482,11 @@ class Govee(object):
                             config_offline_is_off=config_offline_is_off,
                         )
                 else:
-                    err = f"API-Error {response.status}: {result}"
+                    _LOGGER.info("API is connected, but there are no devices connected via Govee API. You may want to use Govee Home to pair your devices and connect them to WIFI.")
             else:
                 result = await response.text()
                 err = f"API-Error {response.status}: {result}"
         # cache last get_devices result
-        self._devices = devices
         return self.devices, err
 
     def _get_device(self, device: Union[str, GoveeDevice]) -> Tuple[str, GoveeDevice]:
