@@ -36,6 +36,8 @@ DELAY_GET_FOLLOWING_SET_SECONDS = 2
 # do not send another control within n seconds after controlling the device
 DELAY_SET_FOLLOWING_SET_SECONDS = 1
 
+# regularly discover devices
+SCHEDULE_GET_DEVICES_SECONDS = 100
 
 class GoveeError(Exception):
     """Base Exception thrown from govee_api_laggat."""
@@ -51,13 +53,25 @@ class Govee(object):
     async def __aenter__(self):
         """Async context manager enter."""
         self._session = aiohttp.ClientSession()
+        await self._scheduler_start()
         return self
 
     async def __aexit__(self, *err):
         """Async context manager exit."""
+        await self._scheduler_stop()
         if self._session:
             await self._session.close()
         self._session = None
+
+    async def _scheduler_start(self):
+        """Start tasks which we need to do regularly."""
+        self._tasks = [
+            asyncio.create_task(self._schedule_get_devices())
+        ]
+
+    async def _scheduler_stop(self):
+        for task in self._tasks:
+            task.cancel()
 
     def __init__(
         self,
@@ -412,6 +426,13 @@ class Govee(object):
                 err = f"API-Error {response.status}: {result}"
         return ping_ok_delay, err
     
+    async def _schedule_get_devices(self):
+        """Infinite loop discovering new devices."""
+        while True:
+            await asyncio.sleep(SCHEDULE_GET_DEVICES_SECONDS)
+            _LOGGER.debug("get_devices() started by schedule after %s" % SCHEDULE_GET_DEVICES_SECONDS)
+            await self.get_devices()
+
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
         _LOGGER.debug("get_devices")
@@ -481,6 +502,9 @@ class Govee(object):
                             before_set_brightness_turn_on=before_set_brightness_turn_on,
                             config_offline_is_off=config_offline_is_off,
                         )
+                        # inform client on new devices 
+                        self.events.new_device(self._devices[device_str])
+
                 else:
                     _LOGGER.info("API is connected, but there are no devices connected via Govee API. You may want to use Govee Home to pair your devices and connect them to WIFI.")
             else:
