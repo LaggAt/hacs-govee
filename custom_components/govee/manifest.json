@@ -7,7 +7,7 @@
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
   "requirements": ["govee-api-laggat==0.1.42", "dacite==1.6.0"],
-  "iot_class": ["cloud_polling"],
+  "iot_class": "cloud_polling",
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
