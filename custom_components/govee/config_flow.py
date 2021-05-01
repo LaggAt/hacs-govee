@@ -6,6 +6,7 @@ from govee_api_laggat import Govee, GoveeNoLearningStorage
 from govee_api_laggat.govee_api_laggat import GoveeError
 
 from homeassistant import config_entries, core, exceptions
+import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
 from homeassistant.core import callback
 import voluptuous as vol
@@ -26,7 +27,7 @@ async def validate_api_key(hass: core.HomeAssistant, user_input):
     Return info that you want to store in the config entry.
     """
     api_key = user_input[CONF_API_KEY]
-    async with Govee(api_key, learning_storage=GoveeNoLearningStorage) as hub:
+    async with Govee(api_key, learning_storage=GoveeNoLearningStorage()) as hub:
         _, error = await hub.get_devices()
         if error:
             raise CannotConnect(error)
@@ -43,7 +44,7 @@ async def validate_disabled_attribute_updates(hass: core.HomeAssistant, user_inp
     disable_str = user_input[CONF_DISABLE_ATTRIBUTE_UPDATES]
     if disable_str:
         # we have something to check, connect without API key
-        async with Govee("", learning_storage=GoveeNoLearningStorage) as hub:
+        async with Govee("", learning_storage=GoveeNoLearningStorage()) as hub:
             # this will throw an GoveeError if something fails
             hub.ignore_device_attributes(disable_str)
 
@@ -82,8 +83,8 @@ class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Optional(CONF_DELAY, default=10): int,
+                    vol.Required(CONF_API_KEY): cv.string,
+                    vol.Optional(CONF_DELAY, default=10): cv.positive_int,
                 }
             ),
             errors=errors,
@@ -169,28 +170,28 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_API_KEY,
                     default=old_api_key,
-                ): str,
+                ): cv.string,
                 vol.Optional(
                     CONF_DELAY,
                     default=self.config_entry.options.get(
                         CONF_DELAY, self.config_entry.data.get(CONF_DELAY, 10)
                     ),
-                ): int,
+                ): cv.positive_int,
                 # to options flow
                 vol.Required(
                     CONF_USE_ASSUMED_STATE,
                     default=self.config_entry.options.get(CONF_USE_ASSUMED_STATE, True),
-                ): bool,
+                ): cv.boolean,
                 vol.Required(
                     CONF_OFFLINE_IS_OFF,
                     default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
-                ): bool,
+                ): cv.boolean,
                 vol.Optional(
                     CONF_DISABLE_ATTRIBUTE_UPDATES,
                     default=self.config_entry.options.get(
-                        CONF_DISABLE_ATTRIBUTE_UPDATES, None
+                        CONF_DISABLE_ATTRIBUTE_UPDATES, ""
                     ),
-                ): str,
+                ): cv.string,
             },
         )
 
