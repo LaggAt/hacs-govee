@@ -19,6 +19,14 @@ Pull requests are the best way to propose changes to the codebase.
 4. Test you contribution (using tox).
 5. Issue that pull request!
 
+### TODO Document: Work on library govee-api-laggat
+
+* if missing, add the library as git subtree in '.git-subtree/python-govee-api'
+```
+git subtree add --prefix .git-subtree/python-govee-api https://github.com/LaggAt/python-govee-api feature/auto_discover_wifi_devices
+```
+
+
 ## Any contributions you make will be under the MIT Software License
 
 In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.

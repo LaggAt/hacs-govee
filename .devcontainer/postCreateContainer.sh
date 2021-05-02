@@ -9,6 +9,7 @@
 # /usr/local/bin/pip3 install black colorlog debugpy pexpect pygatt pylint PyNaCl==1.3.0
 /usr/local/bin/pip3 install -r /workspaces/hacs-govee/requirements_test.txt
 
+
 # /bin/echo ------------ postCreateCommand container install ------------
 # mkdir -p /src/ludeeus
 # cd /src/ludeeus
@@ -16,6 +17,9 @@
 # cp -r ./container/rootfs/common/* /
 # chmod +x /usr/bin/container
 # /usr/bin/container install
+
+# /bin/echo ------------ postCreateCommand container install ------------
+pip install -e /workspaces/hacs-govee/.git-subtree/python-govee-api/
 
 /bin/echo ------------ postCreateCommand symlink our component ------------
 # /bin/mkdir -p /config/custom_components
