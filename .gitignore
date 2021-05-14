@@ -139,6 +139,3 @@ cython_debug/
 
 # other components in test environment
 custom_components/hacs
-
-# ignore libraries subtree git repos
-.git-subtree/

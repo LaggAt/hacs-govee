@@ -10,6 +10,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
 from homeassistant.core import callback
 import voluptuous as vol
+from typing import Any
 
 from .const import (
     CONF_DISABLE_ATTRIBUTE_UPDATES,
@@ -186,6 +187,7 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_OFFLINE_IS_OFF,
                     default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
                 ): cv.boolean,
+                # TODO: validator doesn't work, change to list?
                 vol.Optional(
                     CONF_DISABLE_ATTRIBUTE_UPDATES,
                     default=self.config_entry.options.get(
