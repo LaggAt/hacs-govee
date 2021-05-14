@@ -21,9 +21,18 @@ Pull requests are the best way to propose changes to the codebase.
 
 ### TODO Document: Work on library govee-api-laggat
 
-* if missing, add the library as git subtree in '.git-subtree/python-govee-api'
+* this library is added as subtree in '.git-subtree/python-govee-api'
+
 ```
-git subtree add --prefix .git-subtree/python-govee-api https://github.com/LaggAt/python-govee-api feature/auto_discover_wifi_devices
+# how we added it:
+git subtree add --prefix .git-subtree/python-govee-api https://github.com/LaggAt/python-govee-api master
+
+# you may want to pull latest master:
+git subtree pull --prefix=.git-subtree/python-govee-api/ https://github.com/LaggAt/python-govee-api master
+
+# if you made changes to the library don't forget to push the changes to bug/feature branches there before doing a pull request:
+git subtree push --prefix=.git-subtree/python-govee-api/ https://github.com/LaggAt/python-govee-api feature/describe-your-feature
+
 ```
 
 
