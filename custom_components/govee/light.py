@@ -20,9 +20,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import color
 
 from .const import (
+    DOMAIN,
     CONF_OFFLINE_IS_OFF,
     CONF_USE_ASSUMED_STATE,
-    DOMAIN,
     COLOR_TEMP_KELVIN_MIN,
     COLOR_TEMP_KELVIN_MAX,
 )
@@ -46,17 +46,25 @@ async def async_setup_entry(hass, entry, async_add_entities):
         hass, _LOGGER, update_interval=update_interval, config_entry=entry
     )
     # Fetch initial data so we have data when entities subscribe
+    hub.events.new_device += lambda device: add_entity(async_add_entities, hub, entry, coordinator, device)
     await coordinator.async_refresh()
 
     # Add devices
+    for device in hub.devices:
+        add_entity(async_add_entities, hub, entry, coordinator, device)
+    # async_add_entities(
+    #     [
+    #         GoveeLightEntity(hub, entry.title, coordinator, device)
+    #         for device in hub.devices
+    #     ],
+    #     update_before_add=False,
+    # )
+
+def add_entity(async_add_entities, hub, entry, coordinator, device):
     async_add_entities(
-        [
-            GoveeLightEntity(hub, entry.title, coordinator, device)
-            for device in hub.devices
-        ],
+        [GoveeLightEntity(hub, entry.title, coordinator, device)],
         update_before_add=False,
     )
-
 
 class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
     """Device state update handler."""

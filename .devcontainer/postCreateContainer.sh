@@ -4,11 +4,6 @@
 apt-get update
 apt-get -y install bash bluetooth bluez bluez-tools build-essential ca-certificates cython gcc git iputils-ping libatomic1 libavcodec-dev libc-dev libffi-dev libjpeg-dev libpcap-dev libssl-dev make nano openssh-client procps python3 python3-dev python3-dev python3-pip python3-setuptools rfkill unzip wget wget zlib1g-dev
 
-/bin/echo ------------ postCreateCommand python/pip ------------
-/usr/local/bin/python3 -m pip install --upgrade pip
-/usr/local/bin/pip3 install black colorlog debugpy pexpect pygatt pylint PyNaCl==1.3.0
-/usr/local/bin/pip3 install -r /workspaces/hacs-govee/requirements_test.txt
-
 /bin/echo ------------ postCreateCommand container install ------------
 mkdir -p /src/ludeeus
 cd /src/ludeeus
@@ -20,6 +15,14 @@ chmod +x /usr/bin/container
 /bin/echo ------------ postCreateCommand symlink our component ------------
 /bin/mkdir -p /config/custom_components
 /bin/ln -s /workspaces/hacs-govee/custom_components/govee /config/custom_components/govee
+
+/bin/echo ------------ postCreateCommand container install ------------
+pip install -e /workspaces/hacs-govee/.git-subtree/python-govee-api/
+
+/bin/echo ------------ postCreateCommand python/pip ------------
+/usr/local/bin/python3 -m pip install --upgrade pip
+/usr/local/bin/pip3 install black colorlog debugpy pexpect pygatt pylint PyNaCl==1.3.0
+/usr/local/bin/pip3 install -r /workspaces/hacs-govee/requirements_test.txt
 
 /bin/echo ------------ postCreateCommand install hacs ------------
 mkdir -p /src/hacs

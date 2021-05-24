@@ -6,9 +6,11 @@ from govee_api_laggat import Govee, GoveeNoLearningStorage
 from govee_api_laggat.govee_api_laggat import GoveeError
 
 from homeassistant import config_entries, core, exceptions
+import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
 from homeassistant.core import callback
 import voluptuous as vol
+from typing import Any
 
 from .const import (
     CONF_DISABLE_ATTRIBUTE_UPDATES,
@@ -82,8 +84,8 @@ class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Optional(CONF_DELAY, default=10): int,
+                    vol.Required(CONF_API_KEY): cv.string,
+                    vol.Optional(CONF_DELAY, default=10): cv.positive_int,
                 }
             ),
             errors=errors,
@@ -169,28 +171,29 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_API_KEY,
                     default=old_api_key,
-                ): str,
+                ): cv.string,
                 vol.Optional(
                     CONF_DELAY,
                     default=self.config_entry.options.get(
                         CONF_DELAY, self.config_entry.data.get(CONF_DELAY, 10)
                     ),
-                ): int,
+                ): cv.positive_int,
                 # to options flow
                 vol.Required(
                     CONF_USE_ASSUMED_STATE,
                     default=self.config_entry.options.get(CONF_USE_ASSUMED_STATE, True),
-                ): bool,
+                ): cv.boolean,
                 vol.Required(
                     CONF_OFFLINE_IS_OFF,
                     default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
-                ): bool,
+                ): cv.boolean,
+                # TODO: validator doesn't work, change to list?
                 vol.Optional(
                     CONF_DISABLE_ATTRIBUTE_UPDATES,
                     default=self.config_entry.options.get(
-                        CONF_DISABLE_ATTRIBUTE_UPDATES, None
+                        CONF_DISABLE_ATTRIBUTE_UPDATES, ""
                     ),
-                ): str,
+                ): cv.string,
             },
         )
 

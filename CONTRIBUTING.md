@@ -19,6 +19,23 @@ Pull requests are the best way to propose changes to the codebase.
 4. Test you contribution (using tox).
 5. Issue that pull request!
 
+### TODO Document: Work on library govee-api-laggat
+
+* this library is added as subtree in '.git-subtree/python-govee-api'
+
+```
+# how we added it:
+git subtree add --prefix .git-subtree/python-govee-api https://github.com/LaggAt/python-govee-api master
+
+# you may want to pull latest master:
+git subtree pull --prefix=.git-subtree/python-govee-api/ https://github.com/LaggAt/python-govee-api master
+
+# if you made changes to the library don't forget to push the changes to bug/feature branches there before doing a pull request:
+git subtree push --prefix=.git-subtree/python-govee-api/ https://github.com/LaggAt/python-govee-api feature/describe-your-feature
+
+```
+
+
 ## Any contributions you make will be under the MIT Software License
 
 In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
