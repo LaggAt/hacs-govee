@@ -1,3 +1,4 @@
+asynctest>=0.12.3
 black==20.8b1
 colorlog==4.6.2
 coveralls
@@ -7,6 +8,7 @@ govee_api_laggat
 homeassistant
 pylint==2.6.0
 pytest
+pytest-asyncio
 pytest-cov
 pytest-homeassistant-custom-component==0.3.0
 tox

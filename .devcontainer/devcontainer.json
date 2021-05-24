@@ -9,9 +9,9 @@
 	// "containerEnv": {
 	// 	"WS_PATH": "/usr/share/hassio/share/dev/hacs-govee",
 	// },
-	"image": "laggat/hacs-base-container",
-	//"image": "ludeeus/container:python-base-debian",
-	//"vsch.local.folder": "/usr/share/hassio/share/dev/hacs-govee",
+	//TODO: finish your own container for faster dev setup
+	//"image": "laggat/hacs-base-container",
+	"image": "ludeeus/container:python-base-debian",
 	//"dockerFile": "Dockerfile",
 	"name": "Govee integration development",
 	"context": "..",
@@ -34,7 +34,6 @@
 	"settings": {
 		"files.eol": "\n",
 		"editor.tabSize": 4,
-		"terminal.integrated.shell.linux": "/bin/bash",
 		"python.pythonPath": "/usr/bin/python3",
 		"python.analysis.autoSearchPaths": false,
 		"python.linting.pylintEnabled": true,
