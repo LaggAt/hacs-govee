@@ -29,69 +29,74 @@ JSON_DEVICE_H6104 = {
     "retrievable": False,
     "supportCmds": ["turn", "brightness", "color", "colorTem"],
 }
-JSON_DEVICES = {"data": {"devices": [JSON_DEVICE_H6163, JSON_DEVICE_H6104]}}
+JSON_DEVICES = copy.deepcopy({"data": {"devices": [JSON_DEVICE_H6163, JSON_DEVICE_H6104]}})
 JSON_DEVICES_EMPTY = {"data": {"devices": []}}
 JSON_OK_RESPONSE = {"code": 200, "data": {}, "message": "Success"}
-# light device
-DUMMY_DEVICE_H6163 = GoveeDevice(
-    device=JSON_DEVICE_H6163["device"],
-    model=JSON_DEVICE_H6163["model"],
-    device_name=JSON_DEVICE_H6163["deviceName"],
-    controllable=JSON_DEVICE_H6163["controllable"],
-    retrievable=JSON_DEVICE_H6163["retrievable"],
-    support_cmds=JSON_DEVICE_H6163["supportCmds"],
-    support_turn="turn" in JSON_DEVICE_H6163["supportCmds"],
-    support_brightness="brightness" in JSON_DEVICE_H6163["supportCmds"],
-    support_color="color" in JSON_DEVICE_H6163["supportCmds"],
-    support_color_tem="colorTem" in JSON_DEVICE_H6163["supportCmds"],
-    online=True,
-    power_state=True,
-    brightness=254,
-    color=(139, 0, 255),
-    color_temp=0,
-    timestamp=0,
-    source=GoveeSource.API,  # this device supports status
-    error=None,
-    lock_set_until=0,
-    lock_get_until=0,
-    learned_set_brightness_max=100,
-    learned_get_brightness_max=254,
-    before_set_brightness_turn_on=False,
-    config_offline_is_off=False
-)
-DUMMY_DEVICE_H6104 = GoveeDevice(
-    device=JSON_DEVICE_H6104["device"],
-    model=JSON_DEVICE_H6104["model"],
-    device_name=JSON_DEVICE_H6104["deviceName"],
-    controllable=JSON_DEVICE_H6104["controllable"],
-    retrievable=JSON_DEVICE_H6104["retrievable"],
-    support_cmds=JSON_DEVICE_H6104["supportCmds"],
-    support_turn="turn" in JSON_DEVICE_H6104["supportCmds"],
-    support_brightness="brightness" in JSON_DEVICE_H6104["supportCmds"],
-    support_color="color" in JSON_DEVICE_H6104["supportCmds"],
-    support_color_tem="colorTem" in JSON_DEVICE_H6104["supportCmds"],
-    online=True,
-    power_state=False,
-    brightness=0,
-    color=(0, 0, 0),
-    color_temp=0,
-    timestamp=0,
-    source=GoveeSource.HISTORY,
-    error=None,
-    lock_set_until=0,
-    lock_get_until=0,
-    learned_set_brightness_max=254,
-    learned_get_brightness_max=None,
-    before_set_brightness_turn_on=False,
-    config_offline_is_off=False
-)
-DUMMY_DEVICES = {
-    DUMMY_DEVICE_H6163.device: DUMMY_DEVICE_H6163,
-    DUMMY_DEVICE_H6104.device: DUMMY_DEVICE_H6104,
-}
+
+# light device (get new instance on every run to avoid the need for copy.deepcopy())
+
+def get_dummy_device_H6163() -> GoveeDevice:
+    return GoveeDevice(
+        device=JSON_DEVICE_H6163["device"],
+        model=JSON_DEVICE_H6163["model"],
+        device_name=JSON_DEVICE_H6163["deviceName"],
+        controllable=JSON_DEVICE_H6163["controllable"],
+        retrievable=JSON_DEVICE_H6163["retrievable"],
+        support_cmds=JSON_DEVICE_H6163["supportCmds"],
+        support_turn="turn" in JSON_DEVICE_H6163["supportCmds"],
+        support_brightness="brightness" in JSON_DEVICE_H6163["supportCmds"],
+        support_color="color" in JSON_DEVICE_H6163["supportCmds"],
+        support_color_tem="colorTem" in JSON_DEVICE_H6163["supportCmds"],
+        online=True,
+        power_state=True,
+        brightness=254,
+        color=(139, 0, 255),
+        color_temp=0,
+        timestamp=0,
+        source=GoveeSource.API,  # this device supports status
+        error=None,
+        lock_set_until=0,
+        lock_get_until=0,
+        learned_set_brightness_max=100,
+        learned_get_brightness_max=254,
+        before_set_brightness_turn_on=False,
+        config_offline_is_off=False,
+    )
+
+def get_dummy_device_H6104() -> GoveeDevice:
+    return GoveeDevice(
+        device=JSON_DEVICE_H6104["device"],
+        model=JSON_DEVICE_H6104["model"],
+        device_name=JSON_DEVICE_H6104["deviceName"],
+        controllable=JSON_DEVICE_H6104["controllable"],
+        retrievable=JSON_DEVICE_H6104["retrievable"],
+        support_cmds=JSON_DEVICE_H6104["supportCmds"],
+        support_turn="turn" in JSON_DEVICE_H6104["supportCmds"],
+        support_brightness="brightness" in JSON_DEVICE_H6104["supportCmds"],
+        support_color="color" in JSON_DEVICE_H6104["supportCmds"],
+        support_color_tem="colorTem" in JSON_DEVICE_H6104["supportCmds"],
+        online=True,
+        power_state=False,
+        brightness=0,
+        color=(0, 0, 0),
+        color_temp=0,
+        timestamp=0,
+        source=GoveeSource.HISTORY,
+        error=None,
+        lock_set_until=0,
+        lock_get_until=0,
+        learned_set_brightness_max=254,
+        learned_get_brightness_max=None,
+        before_set_brightness_turn_on=False,
+        config_offline_is_off=False,
+    )
+DUMMY_DEVICES = copy.deepcopy({
+    get_dummy_device_H6163().device: get_dummy_device_H6163(),
+    get_dummy_device_H6104().device: get_dummy_device_H6104(),
+})
 
 # json results for light states
-JSON_DEVICE_STATE = {
+JSON_DEVICE_STATE = copy.deepcopy({
     "data": {
         "device": JSON_DEVICE_H6163["device"],
         "model": JSON_DEVICE_H6163["model"],
@@ -104,7 +109,7 @@ JSON_DEVICE_STATE = {
     },
     "message": "Success",
     "code": 200,
-}
+})
 
 # json offline state
 JSON_DEVICE_STATE_OFFLINE = {
@@ -112,7 +117,7 @@ JSON_DEVICE_STATE_OFFLINE = {
         "device": JSON_DEVICE_H6163["device"],
         "model": JSON_DEVICE_H6163["model"],
         "properties": [
-            {"online": 'false'}, # yes, govee returns string 'false'
+            {"online": "false"},  # yes, govee returns string 'false'
             {"powerState": "on"},
             {"brightness": 254},
             {"color": {"r": 139, "b": 255, "g": 0}},
@@ -129,20 +134,21 @@ def JSON_DEVICE_STATE_WITH_BRIGHTNESS(brightness):
     return val
 
 
-# API rate limit header keys
-_RATELIMIT_TOTAL = "Rate-Limit-Total"  # The maximum number of requests you're permitted to make per minute.
-_RATELIMIT_REMAINING = "Rate-Limit-Remaining"  # The number of requests remaining in the current rate limit window.
-_RATELIMIT_RESET = "Rate-Limit-Reset"  # The time at which the current rate limit window resets in UTC epoch seconds.
-
-
 # aiohttp mocking (monkeypatch)
 class MockAiohttpResponse:
     def __init__(
-        self, *, status=200, json=None, text=None, check_kwargs=lambda kwargs: True
+        self,
+        *,
+        status=200,
+        json=None,
+        text=None,
+        headers={RATELIMIT_TOTAL: 100, RATELIMIT_REMAINING: 100, RATELIMIT_RESET: 0},
+        check_kwargs=lambda kwargs: True,
     ):
         self._status = status
         self._json = json
         self._text = text
+        self._headers = headers
         self._check_kwargs = check_kwargs
 
     def check_kwargs(self, kwargs):
@@ -160,8 +166,7 @@ class MockAiohttpResponse:
 
     @property
     def headers(self):
-        h = {_RATELIMIT_TOTAL: 100, _RATELIMIT_REMAINING: 100, _RATELIMIT_RESET: 0}
-        return h
+        return self._headers
 
     @property
     def status(self):
@@ -186,7 +191,7 @@ LEARNED_TURN_BEFORE_BRIGHTNESS = {
     JSON_DEVICE_H6163["device"]: GoveeLearnedInfo(
         get_brightness_max=100,
         set_brightness_max=100,
-        before_set_brightness_turn_on=True
+        before_set_brightness_turn_on=True,
     )
 }
 CONFIGURE_OFFLINE_IS_OFF = {
