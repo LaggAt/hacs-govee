@@ -6,68 +6,29 @@
     "justMyCode": false,
     "configurations": [
         {
-            "name": "run govee_api_laggat ping",
+            "envFile": "${workspaceFolder}/.env",
+            "name": "run /example/turn_on_before_bright.py",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["ping"],
+            "cwd": "${workspaceFolder}/example",
+            "program": "./turn_on_before_bright.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
         },{
-            "name": "run govee_api_laggat devices <api-key>",
+            "name": "run /example/readme_example.py",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["devices", "${env:GOVEE_API_KEY}"],
+            "cwd": "${workspaceFolder}/example",
+            "program": "./readme_example.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
         },{
-            "name": "run govee_api_laggat turn_on <api-key>",
+            "name": "run /example/storage_example_yaml.yaml",
             "type": "python",
             "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["turn_on", "${env:GOVEE_API_KEY}"],
-            "console": "integratedTerminal"
-        },{
-            "name": "run govee_api_laggat turn_off <api-key>",
-            "type": "python",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["turn_off", "${env:GOVEE_API_KEY}"],
-            "console": "integratedTerminal"
-        },{
-            "name": "run govee_api_laggat state <api-key>",
-            "type": "python",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["state", "${env:GOVEE_API_KEY}"],
-            "console": "integratedTerminal"
-        },{
-            "name": "run govee_api_laggat brightness <api-key>",
-            "type": "python",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["brightness", "${env:GOVEE_API_KEY}"],
-            "console": "integratedTerminal"
-        },{
-            "name": "run govee_api_laggat colortemp <api-key>",
-            "type": "python",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["colortemp", "${env:GOVEE_API_KEY}"],
-            "console": "integratedTerminal"
-        },{
-            "name": "run govee_api_laggat color <api-key>",
-            "type": "python",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/govee_api_laggat",
-            "program": "./_ugly_examples.py",
-            "args": ["color", "${env:GOVEE_API_KEY}"],
+            "cwd": "${workspaceFolder}/example",
+            "program": "./storage_example_yaml.py",
+            "args": ["--api-key", "${env:GOVEE_API_KEY}"],
             "console": "integratedTerminal"
         },{
             "name": "create distribution package",
