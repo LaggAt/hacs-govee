@@ -1,6 +1,6 @@
 {
     "name": "govee",
-    "hacs": "0.2.0b",
+    "hacs": "0.2.1",
     "domains": [
         "light"
     ],
