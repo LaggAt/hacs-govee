@@ -26,6 +26,7 @@ Govee and the Govee logo are trademarks or registered trademarks of Shenzhen Int
 
 - PyPi project and python package: [pypi.org/project/govee-api-laggat](https://pypi.org/project/govee-api-laggat/)
 - Home Assistant custom integration Git: [github.com/LaggAt/hacs-govee](https://github.com/LaggAt/hacs-govee)
+- Govee API documentation: [Govee API Reference](https://govee-public.s3.amazonaws.com/developer-docs/GoveeAPIReference.pdf)
 
 ## API Key
 
@@ -33,10 +34,10 @@ To get an api key you need to install the 'Govee Home' app on your mobile and br
 
 ## Issues / Improvements
 
-There are two projects, this one is the API implementation for python. 
+There are two projects, this one is the API implementation for python.
 The second project is the custom integration into Home Assistant which currently lives [github.com/LaggAt/hacs-govee](https://github.com/LaggAt/hacs-govee)
 
-Feel free to fork and start a pull request in your feature/bug branch. 
+Feel free to fork and start a pull request in your feature/bug branch.
 If you cannot fix or extend it yourself, you may want to add an issue in the correct project, but it may take a bit longer.
 
 ## development
