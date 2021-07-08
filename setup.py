@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 INSTALL_REQUIRES = [
-    "aiohttp[speedups]>=3.7.1", 
+    "aiohttp>=3.7.1", 
     "events>=0.3",
     "pygatt>=4.0.5",
     "pexpect>=4.8.0",
