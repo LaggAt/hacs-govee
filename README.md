@@ -18,6 +18,7 @@ Thank you!
 We think so. It is used often, and the support thread is active.
 
 ![usage statistics per version](https://raw.githubusercontent.com/LaggAt/actions/main/output/goveestats_installations.png)
+
 Usage Data is taken from Home Assistant analytics, and plotted over time by us. You need to enable analytics if you want to show here.
 
 ## Pulling or assuming state
