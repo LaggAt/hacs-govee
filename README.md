@@ -13,6 +13,13 @@ A lot of effort is going into that integration. So if you can afford it and want
 
 Thank you!
 
+## Is it stable?
+
+We think so. It is used often, and the support thread is active.
+
+![usage statistics per version](https://raw.githubusercontent.com/LaggAt/actions/main/output/goveestats_installations.png)
+Usage Data is taken from Home Assistant analytics, and plotted over time by us. You need to enable analytics if you want to show here.
+
 ## Pulling or assuming state
 
 Some devices do not support pulling state. In this case we assume the state on your last input.
