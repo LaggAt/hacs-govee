@@ -16,7 +16,7 @@ Platform | Description
 {% if not installed %}
 ## Installation
 
-1. Click install.
+1. In HACS/Integrations, search for 'Govee' and click install.
 1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "govee".
 
 {% endif %}
@@ -25,10 +25,10 @@ Platform | Description
 
 Usually you just add the integration, enter api-key and poll interval and you are good to go. When you need further help you can look here:
 
-## Further information and help
-
 * [Documentation on GitHub](https://github.com/LaggAt/hacs-govee/blob/master/README.md)
 * [Support thread on Home Assistant Community](https://community.home-assistant.io/t/govee-led-strips-integration/228516/1)
+* [Is there an issue with Govee API or the library?](https://raw.githubusercontent.com/LaggAt/actions/main/output/govee-api-up.png)
+* [Version statistics taken from Home Assistant Analytics](https://raw.githubusercontent.com/LaggAt/actions/main/output/goveestats_installations.png)
 
 ## Sponsor
 
