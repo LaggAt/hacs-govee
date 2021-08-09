@@ -2,8 +2,12 @@
 
 The Govee integration allows you to control and monitor lights using the Govee API.
 
-To set up this integration, click Configuration in the sidebar and then click Integrations. Click the + icon to add "Govee" to the integrations. An API key
-is necessary, you need to obtain it in the 'Govee Home' app on your mobile, in the User menu - About us - Apply for API Key. The key will be sent to you by email.
+## Installation
+
+* The installation is done inside [HACS](https://hacs.xyz/). If you don't have HACS, we recommend you install it first.
+* Once HACS is installed just search for the 'Govee' integration there, and click Install.
+* Then click Configuration in the sidebar and then click Integrations. Click the + icon to add "Govee" to your Home Assistant installation. An API key
+is required, you need to obtain it in the 'Govee Home' app on your mobile, in the User menu - About us - Apply for API Key. The key will be sent to you by email.
 
 ## Sponsor
 
@@ -20,6 +24,12 @@ We think so. It is used often, and the support thread is active.
 ![usage statistics per version](https://raw.githubusercontent.com/LaggAt/actions/main/output/goveestats_installations.png)
 
 Usage Data is taken from Home Assistant analytics, and plotted over time by us. You need to enable analytics if you want to show here.
+
+## Is there an issue right now?
+
+This graph uses the same library to do simple checks. If you see round dots on the right of the graph (= today), probably there is an issue.
+
+![Govee API running?](https://raw.githubusercontent.com/LaggAt/actions/main/output/govee-api-up.png)
 
 ## Pulling or assuming state
 
