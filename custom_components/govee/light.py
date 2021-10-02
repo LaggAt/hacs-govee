@@ -310,8 +310,8 @@ class GoveeLightEntity(LightEntity):
             # rate limiting information on Govee API
             "rate_limit_total": self._hub.rate_limit_total,
             "rate_limit_remaining": self._hub.rate_limit_remaining,
-            "rate_limit_reset_seconds": self._hub.rate_limit_reset_seconds,
-            "rate_limit_reset": self._hub.rate_limit_reset,
+            "rate_limit_reset_seconds": round(self._hub.rate_limit_reset_seconds, 2),
+            "rate_limit_reset": round(self._hub.rate_limit_reset, 2),
             "rate_limit_on": self._hub.rate_limit_on,
             # general information
             "manufacturer": "Govee",
