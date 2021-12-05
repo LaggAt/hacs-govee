@@ -11,21 +11,27 @@ async def all_examples(api_key, your_learning_storage):
         # i will explain that learning_storage below.
 
         # check connection: never fails, just tells if we can connect the API. no auth needed.
-        online = await govee.check_connection()
+        _ = await govee.check_connection()
         # you may also register for an event, when api is going offline/online
         govee.events.online += lambda is_online: print(f"API is online: {is_online}")
         # you may also ask if the client was online the last time it tried to connect:
-        last_online_state = govee.online
-        # ping endpoint in Govee API (also uses no auth/api_key)
-        ping_ms, err = await govee.ping()
+        _ = govee.online
         # get devices list - this is mandatory, you need to successfully get the devices first!
         devices, err = await govee.get_devices()
+        if err:  # TODO: Put in proper exception for async context manager
+            print(err)
+            await govee.close()
+            return
+        if not devices:
+            print('No devices found')
+            await govee.close()
+            return
         # get states
         devices = (
             await govee.get_states()
         )  # yes, states returns the same object containing device and state info
         # once you have called get_devices() once, you can get this list from cache:
-        cache_devices = govee.devices
+        _ = govee.devices
         # or a specific device from cache
         cache_device = govee.device(devices[0].device)  # .device returns device-ID
         # turn a device on/off (using device-object or device-id works for all calls)
@@ -44,18 +50,25 @@ async def all_examples(api_key, your_learning_storage):
         ### rate limiting:
         # set requests left before the rate limiter stops us
         govee.rate_limit_on = 5  # 5 requests is the default
-        current_rate_limit_on = govee.rate_limit_on
+        _ = govee.rate_limit_on
         # see also these properties:
-        total = govee.rate_limit_total
-        remaining = govee.rate_limit_remaining
-        reset = govee.rate_limit_reset  # ... or more readable:
-        reset_seconds = govee.rate_limit_reset_seconds
+        _ = govee.rate_limit_total
+        _ = govee.rate_limit_remaining
+        _ = govee.rate_limit_reset  # ... or more readable:
+        _ = govee.rate_limit_reset_seconds
 
     ### without async content manager:
     govee = await Govee.create(api_key, learning_storage=your_learning_storage)
-    ping_ms, err = await govee.ping()  # all commands as above
+    if err:
+        print(err)
+        await govee.close()
+        return
     # don't forget the mandatory get_devices!
     devices, err = await govee.get_devices()
+    if not devices:
+        print('No devices found')
+        await govee.close()
+        return
     # let's turn off the light at the end
     success, err = await govee.turn_off(cache_device.device)
     await govee.close()
@@ -75,7 +88,7 @@ class YourLearningStorage(GoveeAbstractLearningStorage):
         )  # get the last saved learning information from disk, database, ... and return it.
 
     async def write(self, learned_info: Dict[str, GoveeLearnedInfo]):
-        persist_this_somewhere = learned_info  # save this dictionary to disk
+        _ = learned_info  # save this dictionary to disk
 
 
 # then
