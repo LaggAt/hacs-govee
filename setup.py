@@ -4,11 +4,13 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 INSTALL_REQUIRES = [
-    "aiohttp>=3.7.1", 
+    "aiohttp>=3.7.1",
+    "bios>=0.1.2",
+    "dacite>=1.6.0",
     "events>=0.3",
-    "pygatt>=4.0.5",
     "pexpect>=4.8.0",
-    #, "govee_btled-1.0"
+    "pygatt>=4.0.5",
+    # , "govee_btled-1.0"
 ]
 
 setuptools.setup(
