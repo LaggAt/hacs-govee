@@ -304,7 +304,7 @@ class GoveeLightEntity(LightEntity):
         return color.color_temperature_kelvin_to_mired(COLOR_TEMP_KELVIN_MIN)
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return the device state attributes."""
         return {
             # rate limiting information on Govee API
