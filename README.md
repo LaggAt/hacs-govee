@@ -4,7 +4,7 @@ The Govee integration allows you to control and monitor lights and switches usin
 
 ## Installation
 
-* The installation is done inside [HACS](https://hacs.xyz/) (Home Assistant Community Store). If you don't have HACS, you must you install it before adding this integration. [Installation instructions here.](https://hacs.xyz/docs/setup/download)
+* The installation is done inside [HACS](https://hacs.xyz/) (Home Assistant Community Store). If you don't have HACS, you must install it before adding this integration. [Installation instructions here.](https://hacs.xyz/docs/setup/download)
 * Once HACS is installed, navigate to the 'Integrations' tab in HACS and search for the 'Govee' integration there. Click "Download this repository in HACS". On the next screen, select "Download". Once fully downloaded, restart HomeAssistant.
 * In the sidebar, click 'Configuration', then 'Devices & Services'. Click the + icon to add "Govee" to your Home Assistant installation. An API key
 is required, you need to obtain it in the 'Govee Home' app on your mobile device. This can be done from the Account Page (Far right icon at the bottom) > Settings (top right icon) > About Us > Apply for API Key. The key will be sent to your account email.
