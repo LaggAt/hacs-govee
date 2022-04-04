@@ -1,6 +1,6 @@
 # 'Govee' integration
 
-The Govee integration allows you to control and monitor lights and switches using the Govee API.
+The Govee integration allows you to control and monitor lights using the Govee API.
 
 ## Installation
 
