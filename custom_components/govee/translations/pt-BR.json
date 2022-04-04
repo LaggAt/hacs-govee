@@ -1,0 +1,42 @@
+{
+  "title": "Govee",
+  "config": {
+    "abort": {
+      "already_configured": "Já configurado. Apenas uma única configuração é possível."
+    },
+    "error": {
+      "cannot_connect": "Não pode conectar. A API-Key está correta e a conexão com a Internet está funcionando?",
+      "unknown": "Erro desconhecido."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "Chave de API",
+          "delay": "Intervalo de escaneamento"
+        },
+        "title": "Govee",
+        "description": "Obtenha sua chave de API do aplicativo Govee Home. Para detalhes consulte https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Não pode conectar. A API-Key está correta e a conexão com a Internet está funcionando?",
+      "unknown": "Erro desconhecido.",
+      "disabled_attribute_updates_wrong": "Formato errado, veja README acima."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "Chave de API (requer reinicialização)",
+          "delay": "Intervalo de escaneamento (requer reinicialização)",
+          "use_assumed_state": "Use 'estado presumido' (dois botões). Padrão: true",
+          "offline_is_off": "Quando um led estiver offline, mostre-o como desligado (o padrão não muda de estado). Padrão: False",
+          "disable_attribute_updates": "DESATIVAR atualizações de estado. Espaço para desativar. Leia o README acima!"
+        },
+        "title": "Govee - Opções",
+        "description": "Configure a integração do Govee. Para detalhes consulte https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  }
+}
