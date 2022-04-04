@@ -2,12 +2,9 @@
 
 import asyncio
 import logging
-import time
-import math
 from datetime import datetime
 from events import Events
-from typing import Any, Dict, List, Optional, Tuple, Union
-import os
+from typing import Dict, List, Optional, Tuple, Union
 
 from govee_api_laggat.__version__ import VERSION
 from govee_api_laggat.api import GoveeApi
@@ -214,11 +211,8 @@ class Govee(object):
                         )
                     if field not in GoveeDevice.__dataclass_fields__:
                         raise GoveeError(
-                            "Cannot disable attribute '%s' as GoveeDevice does not have such an attribute. Available fields (not all work): "
-                            % (
-                                field,
-                                repr(GoveeDevice.__dataclass_fields__),
-                            )
+                            f"Cannot disable attribute '{field}' as GoveeDevice does not have such an attribute. "
+                            f"Available fields (not all work): {GoveeDevice.__dataclass_fields__!r}"
                         )
                     if src not in ignore_fields[src_strings[src]]:
                         ignore_fields[src_strings[src]].append(field)
@@ -271,10 +265,7 @@ class Govee(object):
     @property
     def devices(self) -> List[GoveeDevice]:
         """Cached devices list."""
-        lst = []
-        for dev in self._devices:
-            lst.append(self._devices[dev])
-        return lst
+        return [self._devices[dev] for dev in self._devices]
 
     def device(self, device: Union[str, GoveeDevice]) -> GoveeDevice:
         """Single device from cache."""
@@ -306,7 +297,7 @@ class Govee(object):
     async def _schedule_get_devices(self):
         """Infinite loop discovering new devices."""
         while True:
-            await asyncio.sleep(SCHEDULE_GET_DEVICES_SECONDS)
+            await asyncio.sleep(SCHEDULE_GET_DEVICES_SECONDS)  # TODO: define SCHEDULE_GET_DEVICES_SECONDS
             _LOGGER.debug(
                 "get_devices() started by schedule after %s"
                 % SCHEDULE_GET_DEVICES_SECONDS
@@ -318,10 +309,8 @@ class Govee(object):
         _LOGGER.debug("get_devices")
         err = ERR_MESSAGE_NO_ACTIVE_IMPL
         if self._api:
-            err = None
             _, err_api = await self._api.get_devices()
-            if err_api:
-                err = f"API: {err_api}"
+            err = f"API: {err_api}" if err_api else None
 
         return self.devices, err
 
@@ -333,7 +322,7 @@ class Govee(object):
         device_str = device
         if isinstance(device, GoveeDevice):
             device_str = device.device
-            if not device_str in self._devices:
+            if device_str not in self._devices:
                 device = None  # disallow unknown devices
         elif isinstance(device, str) and device_str in self._devices:
             device = self._devices[device_str]
@@ -354,7 +343,6 @@ class Govee(object):
     ) -> Tuple[bool, str]:
         """Turn command called by turn_on and turn_off."""
         success = False
-        err = None
         if self._api:
             return await self._api._turn(device, onOff)
         return success, ERR_MESSAGE_NO_ACTIVE_IMPL
@@ -364,7 +352,6 @@ class Govee(object):
     ) -> Tuple[bool, str]:
         """Set brightness to 0-254."""
         success = False
-        err = None
         if self._api:
             return await self._api.set_brightness(device, brightness)
         return success, ERR_MESSAGE_NO_ACTIVE_IMPL
@@ -376,7 +363,7 @@ class Govee(object):
         ] = await self._learning_storage._read_cached()
         changed = False
         # init Dict and entry for device
-        if learning_infos == None:
+        if learning_infos is None:
             learning_infos = {}
         if device.device not in learning_infos:
             learning_infos[device.device] = GoveeLearnedInfo()
@@ -421,7 +408,6 @@ class Govee(object):
     ) -> Tuple[bool, str]:
         """Set color temperature to 2000-9000."""
         success = False
-        err = None
         if self._api:
             return await self._api.set_color_temp(device, color_temp)
         return success, ERR_MESSAGE_NO_ACTIVE_IMPL
@@ -431,7 +417,6 @@ class Govee(object):
     ) -> Tuple[bool, str]:
         """Set color (r, g, b) where each value may be in range 0-255 """
         success = False
-        err = None
         if self._api:
             return await self._api.set_color(device, color)
         return success, ERR_MESSAGE_NO_ACTIVE_IMPL
