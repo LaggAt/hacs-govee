@@ -18,7 +18,7 @@
 	// "appPort": [
 	// 	"9123:8123"
 	// ],
-	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
+	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/*.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
 	"extensions": [
 		"cschleiden.vscode-github-actions",
 		"github.vscode-pull-request-github",

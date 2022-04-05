@@ -16,13 +16,13 @@
         {
             "label": "Upgrade Home Assistant to latest dev",
             "type": "shell",
-            "command": "container install",
+            "command": "container install; /workspaces/hacs-govee/.devcontainer/postHassUpdated.sh",
             "problemMatcher": []
         },
         {
             "label": "Install a specific version of Home Assistant",
             "type": "shell",
-            "command": "container set-version",
+            "command": "container set-version; /workspaces/hacs-govee/.devcontainer/postHassUpdated.sh",
             "problemMatcher": []
         }//,
         // {

@@ -12,24 +12,6 @@ cp -r ./container/rootfs/common/* /
 chmod +x /usr/bin/container
 /usr/bin/container install
 
-/bin/echo ------------ postCreateCommand symlink our component ------------
-/bin/mkdir -p /config/custom_components
-/bin/ln -s /workspaces/hacs-govee/custom_components/govee /config/custom_components/govee
-
-/bin/echo ------------ postCreateCommand container install ------------
-pip install -e /workspaces/hacs-govee/.git-subtree/python-govee-api/
-
-/bin/echo ------------ postCreateCommand python/pip ------------
-/usr/local/bin/python3 -m pip install --upgrade pip
-/usr/local/bin/pip3 install black colorlog debugpy pexpect pygatt pylint PyNaCl==1.3.0
-/usr/local/bin/pip3 install -r /workspaces/hacs-govee/requirements_test.txt
-
-/bin/echo ------------ postCreateCommand install hacs ------------
-mkdir -p /src/hacs
-cd /src/hacs
-/bin/mkdir -p /config/custom_components/hacs
-/usr/bin/wget https://github.com/hacs/integration/releases/latest/download/hacs.zip
-/usr/bin/unzip hacs.zip -d /config/custom_components/hacs
-/bin/rm hacs.zip
+/workspaces/hacs-govee/.devcontainer/postHassUpdated.sh
 
 /bin/echo ------------ postCreateCommand finished ------------
