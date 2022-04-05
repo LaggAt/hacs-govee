@@ -14,7 +14,6 @@
           "api_key": "API Key",
           "delay": "Poll Interval"
         },
-        "title": "Govee",
         "description": "Get your API Key from the Govee Home App. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
       }
     }
@@ -34,7 +33,7 @@
           "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False",
           "disable_attribute_updates": "DISABLE state updates. Space to disable. Read the README above!"
         },
-        "title": "Govee - Options",
+        "title": "Options",
         "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
       }
     }
