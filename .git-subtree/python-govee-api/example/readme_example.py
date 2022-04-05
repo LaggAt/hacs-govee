@@ -23,7 +23,7 @@ async def all_examples(api_key, your_learning_storage):
             await govee.close()
             return
         if not devices:
-            print('No devices found')
+            print("No devices found")
             await govee.close()
             return
         # get states
@@ -66,7 +66,7 @@ async def all_examples(api_key, your_learning_storage):
     # don't forget the mandatory get_devices!
     devices, err = await govee.get_devices()
     if not devices:
-        print('No devices found')
+        print("No devices found")
         await govee.close()
         return
     # let's turn off the light at the end

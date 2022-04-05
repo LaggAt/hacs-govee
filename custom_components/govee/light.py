@@ -3,8 +3,9 @@
 from datetime import timedelta, datetime
 import logging
 
-from govee_api_laggat import Govee, GoveeDevice, GoveeError
+from govee_api_laggat import Govee, GoveeDevice
 from govee_api_laggat.govee_dtos import GoveeSource
+from govee_api_laggat.govee_errors import GoveeError
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -46,7 +47,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         hass, _LOGGER, update_interval=update_interval, config_entry=entry
     )
     # Fetch initial data so we have data when entities subscribe
-    hub.events.new_device += lambda device: add_entity(async_add_entities, hub, entry, coordinator, device)
+    hub.events.new_device += lambda device: add_entity(
+        async_add_entities, hub, entry, coordinator, device
+    )
     await coordinator.async_refresh()
 
     # Add devices
@@ -60,11 +63,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     #     update_before_add=False,
     # )
 
+
 def add_entity(async_add_entities, hub, entry, coordinator, device):
     async_add_entities(
         [GoveeLightEntity(hub, entry.title, coordinator, device)],
         update_before_add=False,
     )
+
 
 class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
     """Device state update handler."""
@@ -311,7 +316,9 @@ class GoveeLightEntity(LightEntity):
             "rate_limit_total": self._hub.rate_limit_total,
             "rate_limit_remaining": self._hub.rate_limit_remaining,
             "rate_limit_reset_seconds": round(self._hub.rate_limit_reset_seconds, 2),
-            "rate_limit_reset": datetime.fromtimestamp(self._hub.rate_limit_reset).isoformat(),
+            "rate_limit_reset": datetime.fromtimestamp(
+                self._hub.rate_limit_reset
+            ).isoformat(),
             "rate_limit_on": self._hub.rate_limit_on,
             # general information
             "manufacturer": "Govee",

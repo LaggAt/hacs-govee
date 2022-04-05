@@ -41,7 +41,8 @@ class GoveeAbstractLearningStorage(object):
     async def read(self) -> Dict[str, GoveeLearnedInfo]:
         """Read the learning information."""
         _LOGGER.warning(
-            "Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties."
+            "Implement GoveeAbstractLearningStorage and overwrite write/read methods " +
+            "to persist and restore learned lamp properties."
         )
         return {}
 
@@ -49,7 +50,8 @@ class GoveeAbstractLearningStorage(object):
     async def write(self, learned_info: Dict[str, GoveeLearnedInfo]):
         """Write updated learning information."""
         _LOGGER.warning(
-            "Implement GoveeAbstractLearningStorage and overwrite write/read methods to persist and restore learned lamp properties."
+            "Implement GoveeAbstractLearningStorage and overwrite write/read methods " +
+            "to persist and restore learned lamp properties."
         )
 
 

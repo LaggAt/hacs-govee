@@ -28,7 +28,9 @@ JSON_DEVICE_H6104 = {
     "retrievable": False,
     "supportCmds": ["turn", "brightness", "color", "colorTem"],
 }
-JSON_DEVICES = copy.deepcopy({"data": {"devices": [JSON_DEVICE_H6163, JSON_DEVICE_H6104]}})
+JSON_DEVICES = copy.deepcopy(
+    {"data": {"devices": [JSON_DEVICE_H6163, JSON_DEVICE_H6104]}}
+)
 JSON_DEVICES_EMPTY = {"data": {"devices": []}}
 JSON_OK_RESPONSE = {"code": 200, "data": {}, "message": "Success"}
 
@@ -93,26 +95,30 @@ def get_dummy_device_H6104() -> GoveeDevice:
     )
 
 
-DUMMY_DEVICES = copy.deepcopy({
-    get_dummy_device_H6163().device: get_dummy_device_H6163(),
-    get_dummy_device_H6104().device: get_dummy_device_H6104(),
-})
+DUMMY_DEVICES = copy.deepcopy(
+    {
+        get_dummy_device_H6163().device: get_dummy_device_H6163(),
+        get_dummy_device_H6104().device: get_dummy_device_H6104(),
+    }
+)
 
 # JSON results for light states
-JSON_DEVICE_STATE = copy.deepcopy({
-    "data": {
-        "device": JSON_DEVICE_H6163["device"],
-        "model": JSON_DEVICE_H6163["model"],
-        "properties": [
-            {"online": True},
-            {"powerState": "on"},
-            {"brightness": 254},
-            {"color": {"r": 139, "b": 255, "g": 0}},
-        ],
-    },
-    "message": "Success",
-    "code": 200,
-})
+JSON_DEVICE_STATE = copy.deepcopy(
+    {
+        "data": {
+            "device": JSON_DEVICE_H6163["device"],
+            "model": JSON_DEVICE_H6163["model"],
+            "properties": [
+                {"online": True},
+                {"powerState": "on"},
+                {"brightness": 254},
+                {"color": {"r": 139, "b": 255, "g": 0}},
+            ],
+        },
+        "message": "Success",
+        "code": 200,
+    }
+)
 
 # json offline state
 JSON_DEVICE_STATE_OFFLINE = {

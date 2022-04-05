@@ -29,8 +29,7 @@ class YamlLearningStorage(GoveeAbstractLearningStorage):
             device_dict = bios.read(self._filename)
             learned_info = {
                 dacite.from_dict(
-                    data_class=GoveeLearnedInfo,
-                    data=device_dict[device_str]
+                    data_class=GoveeLearnedInfo, data=device_dict[device_str]
                 )
                 for device_str in device_dict
             }
@@ -41,7 +40,8 @@ class YamlLearningStorage(GoveeAbstractLearningStorage):
         except Exception as ex:
             _LOGGER.warning(
                 "Unable to load goove learned config from %s: %s. This is normal on first use.",
-                self._filename, ex,
+                self._filename,
+                ex,
             )
         return learned_info
 
@@ -83,6 +83,8 @@ if __name__ == "__main__":
     # going async ...
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(some_light_commands(args.api_key, YamlLearningStorage()))
+        loop.run_until_complete(
+            some_light_commands(args.api_key, YamlLearningStorage())
+        )
     finally:
         loop.close()

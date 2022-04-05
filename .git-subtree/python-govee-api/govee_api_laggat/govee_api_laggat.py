@@ -10,6 +10,7 @@ from govee_api_laggat.__version__ import VERSION
 from govee_api_laggat.api import GoveeApi
 from govee_api_laggat.ble import GoveeBle
 from govee_api_laggat.govee_dtos import GoveeDevice, GoveeSource
+from govee_api_laggat.govee_errors import GoveeDeviceNotFound, GoveeError
 from govee_api_laggat.learning_storage import (
     GoveeAbstractLearningStorage,
     GoveeLearnedInfo,
@@ -18,14 +19,7 @@ from govee_api_laggat.learning_storage import (
 _LOGGER = logging.getLogger(__name__)
 
 ERR_MESSAGE_NO_ACTIVE_IMPL = "No implementation is available for that action."
-
-
-class GoveeError(Exception):
-    """Base Exception thrown from govee_api_laggat."""
-
-
-class GoveeDeviceNotFound(GoveeError):
-    """Device is unknown."""
+SCHEDULE_GET_DEVICES_SECONDS = 300
 
 
 class Govee(object):
@@ -174,7 +168,8 @@ class Govee(object):
 
     def ignore_device_attributes(self, ignore_str: str):
         """
-        Set a semicolon-separated list of properties to ignore from source API or HISTORY (which means: remembered values on commands)
+        Set a semicolon-separated list of properties to ignore from source API or HISTORY
+        (which means: remembered values on commands)
 
         Examples:
         "API:online;HISTORY:power_state": ignore online from API, ignore power_state from HISTORY
@@ -297,7 +292,9 @@ class Govee(object):
     async def _schedule_get_devices(self):
         """Infinite loop discovering new devices."""
         while True:
-            await asyncio.sleep(SCHEDULE_GET_DEVICES_SECONDS)  # TODO: define SCHEDULE_GET_DEVICES_SECONDS
+            await asyncio.sleep(
+                SCHEDULE_GET_DEVICES_SECONDS
+            )
             _LOGGER.debug(
                 "get_devices() started by schedule after %s"
                 % SCHEDULE_GET_DEVICES_SECONDS
@@ -392,7 +389,8 @@ class Govee(object):
             )
             if device.learned_get_brightness_max == 100:
                 _LOGGER.info(
-                    "brightness range for %s is assumed. If the brightness slider doesn't match the actual brightness pull the brightness up to max once.",
+                    "brightness range for %s is assumed. If the brightness slider " +
+                    "doesn't match the actual brightness pull the brightness up to max once.",
                     device.device,
                 )
             changed = True
@@ -415,7 +413,7 @@ class Govee(object):
     async def set_color(
         self, device: Union[str, GoveeDevice], color: Tuple[int, int, int]
     ) -> Tuple[bool, str]:
-        """Set color (r, g, b) where each value may be in range 0-255 """
+        """Set color (r, g, b) where each value may be in range 0-255"""
         success = False
         if self._api:
             return await self._api.set_color(device, color)

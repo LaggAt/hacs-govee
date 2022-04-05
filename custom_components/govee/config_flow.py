@@ -3,14 +3,13 @@
 import logging
 
 from govee_api_laggat import Govee, GoveeNoLearningStorage
-from govee_api_laggat.govee_api_laggat import GoveeError
+from govee_api_laggat.govee_errors import GoveeError
 
 from homeassistant import config_entries, core, exceptions
 import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_API_KEY, CONF_DELAY
 from homeassistant.core import callback
 import voluptuous as vol
-from typing import Any
 
 from .const import (
     CONF_DISABLE_ATTRIBUTE_UPDATES,
