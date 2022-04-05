@@ -1,12 +1,9 @@
-from aiohttp import ClientSession
-import asyncio
 from datetime import datetime
 import logging
 import pytest
 import queue
 from time import time
-from typing import Any, Dict
-import unittest
+from typing import Dict
 from unittest.mock import MagicMock, AsyncMock
 
 from govee_api_laggat import (
@@ -785,7 +782,7 @@ async def test_set_disabled_state(mock_aiohttp, mock_never_lock):
         assert not err
         # all state came from HISTORY, so brightness has not changed
         assert lamps[0].brightness == 142
-        assert lamps[0].power_state == False
+        assert not lamps[0].power_state
 
 
 @pytest.mark.asyncio
@@ -1043,7 +1040,7 @@ async def test_get_devices(mock_aiohttp, mock_never_lock):
             )
         )
         result, err = await govee.get_devices()
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert len(result) == 2
         assert isinstance(result[0], GoveeDevice)
@@ -1064,7 +1061,7 @@ async def test_get_devices_empty(mock_aiohttp, mock_never_lock):
         )
         result, err = await govee.get_devices()
         assert result == []
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert len(result) == 0
 
@@ -1129,7 +1126,7 @@ async def test_turn_on(mock_aiohttp, mock_never_lock):
         govee._devices = {get_dummy_device_H6163().device: get_dummy_device_H6163()}
         success, err = await govee.turn_on(get_dummy_device_H6163())
         assert mock_aiohttp_responses.empty()
-        assert err == None
+        assert err is None
         assert success == True
 
 
@@ -1184,7 +1181,7 @@ async def test_turn_off_by_address(mock_aiohttp, mock_never_lock):
         # use device address here
         success, err = await govee.turn_off(get_dummy_device_H6163().device)
         # assert
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert success == True
 
@@ -1285,7 +1282,7 @@ async def test_set_brightness(mock_aiohttp, mock_never_lock):
         success, err = await govee.set_brightness(get_dummy_device_H6163().device, 42)
 
         # assert
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert govee.devices[0].power_state == True
         assert success == True
@@ -1313,7 +1310,7 @@ async def test_set_color_temp(mock_aiohttp, mock_never_lock):
         govee._devices = {get_dummy_device_H6163().device: get_dummy_device_H6163()}
         success, err = await govee.set_color_temp(get_dummy_device_H6163().device, 6000)
         # assert
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert success == True
 
@@ -1343,7 +1340,7 @@ async def test_set_color(mock_aiohttp, mock_never_lock):
         )
 
         # assert
-        assert err == None
+        assert err is None
         assert mock_aiohttp_responses.empty()
         assert success == True
 

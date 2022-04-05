@@ -1,9 +1,7 @@
 import argparse
 import asyncio
-from time import sleep
-from typing import Dict
 
-from govee_api_laggat import Govee, GoveeAbstractLearningStorage, GoveeLearnedInfo
+from govee_api_laggat import Govee
 
 
 async def foo(api_key):
@@ -19,7 +17,7 @@ async def foo(api_key):
                 success, err = await govee.set_brightness(dev, 254)
                 print("set")
             await asyncio.sleep(5)
-            
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="govee_api_laggat examples")
