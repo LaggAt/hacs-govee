@@ -1,17 +1,17 @@
-import asyncio
 import aiohttp
+import asyncio
+import certifi
 from contextlib import asynccontextmanager
-import math
-import time
-from typing import Any, Dict, List, Optional, Tuple, Union
 import logging
+import math
+import ssl
+from typing import Any, List, Tuple, Union
 
 from govee_api_laggat.govee_dtos import GoveeDevice, GoveeSource
 
 _LOGGER = logging.getLogger(__name__)
 
 _API_BASE_URL = "https://developer-api.govee.com"
-_API_PING = _API_BASE_URL + "/ping"
 _API_DEVICES = _API_BASE_URL + "/v1/devices"
 _API_DEVICES_CONTROL = _API_BASE_URL + "/v1/devices/control"
 _API_DEVICES_STATE = _API_BASE_URL + "/v1/devices/state"
@@ -37,7 +37,9 @@ class GoveeApi(object):
 
     async def __aenter__(self):
         """Async context manager enter."""
-        self._session = aiohttp.ClientSession()
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        conn = aiohttp.TCPConnector(ssl=ssl_context)
+        self._session = aiohttp.ClientSession(connector=conn)
         return self
 
     async def __aexit__(self, *err):
@@ -140,7 +142,7 @@ class GoveeApi(object):
         """Track rate limiting."""
         if response.status == 429:
             _LOGGER.warning(
-                f"Rate limit exceeded, check if other devices also utilize the govee API"
+                "Rate limit exceeded, check if other devices also utilize the govee API"
             )
         limit_unknown = True
         if (
@@ -220,34 +222,10 @@ class GoveeApi(object):
 
     async def check_connection(self) -> bool:
         """Check connection to API."""
-        # TODO: ping is removed from API, get devices list here!
-        try:
-            # this will set self.online
-            await self.ping()
-        except:
-            pass
+        # TODO: remove check_connection, ping in later versions. API doesn't provide these anymore
+        # for now, we mimic check_connection by getting the device list.
+        await self.get_devices()
         return self._govee.online
-
-    async def ping(self) -> Tuple[float, str]:
-        """Ping the api endpoint. No API_KEY is needed."""
-        # TODO: ping is removed from API, remove.
-        _LOGGER.debug("ping")
-        start = time.time()
-        ping_ok_delay = None
-        err = None
-
-        async with self._api_get(url=_API_PING, auth=False) as response:
-            result = await response.text()
-            delay = int((time.time() - start) * 1000)
-            if response.status == 200:
-                if "Pong" == result:
-                    ping_ok_delay = max(1, delay)
-                else:
-                    err = f"API-Result wrong: {result}"
-            else:
-                result = await response.text()
-                err = f"API-Error {response.status}: {result}"
-        return ping_ok_delay, err
 
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:
         """Get and cache devices."""
@@ -374,56 +352,54 @@ class GoveeApi(object):
         device_str, device = self._govee._get_device(device)
         if not device:
             err = f"Invalid device {device_str}, {device}"
+        elif brightness < 0 or brightness > 254:
+            err = f"set_brightness: invalid value {brightness}, allowed range 0 .. 254"
         else:
-            if brightness < 0 or brightness > 254:
-                err = f"set_brightness: invalid value {brightness}, allowed range 0 .. 254"
-            else:
-                if brightness > 0 and device.before_set_brightness_turn_on:
-                    await self._govee.turn_on(device)
-                    # api doesn't work if we don't sleep
-                    await asyncio.sleep(1)
-                # set brightness as 0..254
-                brightness_set = brightness
-                brightness_result = brightness_set
-                brightness_set_100 = 0
-                if brightness_set > 0:
-                    brightness_set_100 = max(1, math.floor(brightness * 100 / 254))
-                brightness_result_100 = math.ceil(brightness_set_100 * 254 / 100)
-                if device.learned_set_brightness_max == 100:
-                    # set brightness as 0..100
+            if brightness > 0 and device.before_set_brightness_turn_on:
+                await self._govee.turn_on(device)
+                # API doesn't work if we don't sleep
+                await asyncio.sleep(1)
+            # set brightness as 0..254
+            brightness_set = brightness
+            brightness_result = brightness_set
+            brightness_set_100 = 0
+            if brightness_set > 0:
+                brightness_set_100 = max(1, math.floor(brightness * 100 / 254))
+            brightness_result_100 = math.ceil(brightness_set_100 * 254 / 100)
+            if device.learned_set_brightness_max == 100:
+                # set brightness as 0..100
+                brightness_set = brightness_set_100
+                brightness_result = brightness_result_100
+            command = "brightness"
+            result, err = await self._control(device, command, brightness_set)
+            if err:
+                # try again with 0-100 range
+                if "API-Error 400" in err:  # Unsupported Cmd Value
+                    # set brightness as 0..100 as 0..254 didn't work
                     brightness_set = brightness_set_100
                     brightness_result = brightness_result_100
-                command = "brightness"
-                result, err = await self._control(device, command, brightness_set)
-                if err:
-                    # try again with 0-100 range
-                    if "API-Error 400" in err:  # Unsupported Cmd Value
-                        # set brightness as 0..100 as 0..254 didn't work
-                        brightness_set = brightness_set_100
-                        brightness_result = brightness_result_100
-                        result, err = await self._control(
-                            device, command, brightness_set
-                        )
-                        if not err:
-                            device.learned_set_brightness_max = 100
-                            await self._govee._learn(device)
-                else:
-                    if brightness_set > 100:
-                        device.learned_set_brightness_max = 254
+                    result, err = await self._control(
+                        device, command, brightness_set
+                    )
+                    if not err:
+                        device.learned_set_brightness_max = 100
                         await self._govee._learn(device)
+            elif brightness_set > 100:
+                device.learned_set_brightness_max = 254
+                await self._govee._learn(device)
 
-                if not err:
-                    success = self._is_success_result_message(result)
-                    if success:
-                        self._govee._update_state(
-                            GoveeSource.HISTORY, device, "brightness", brightness_result
-                        )
-                        self._govee._update_state(
-                            GoveeSource.HISTORY,
-                            device,
-                            "power_state",
-                            brightness_result > 0,
-                        )
+            if not err:
+                success = self._is_success_result_message(result)
+                if success:
+                    self._govee._update_state(
+                        GoveeSource.HISTORY, device, "brightness", brightness_result
+                    )
+                    self._govee._update_state(
+                        GoveeSource.HISTORY,
+                        device,
+                        "power_state",
+                        brightness_result > 0,
+                    )
         return success, err
 
     async def set_color_temp(
@@ -435,18 +411,17 @@ class GoveeApi(object):
         device_str, device = self._govee._get_device(device)
         if not device:
             err = f"Invalid device {device_str}, {device}"
+        elif color_temp < 2000 or color_temp > 9000:
+            err = f"set_color_temp: invalid value {color_temp}, allowed range 2000-9000"
         else:
-            if color_temp < 2000 or color_temp > 9000:
-                err = f"set_color_temp: invalid value {color_temp}, allowed range 2000-9000"
-            else:
-                command = "colorTem"
-                result, err = await self._control(device, command, color_temp)
-                if not err:
-                    success = self._is_success_result_message(result)
-                    if success:
-                        self._govee._update_state(
-                            GoveeSource.HISTORY, device, "color_temp", color_temp
-                        )
+            command = "colorTem"
+            result, err = await self._control(device, command, color_temp)
+            if not err:
+                success = self._is_success_result_message(result)
+                if success:
+                    self._govee._update_state(
+                        GoveeSource.HISTORY, device, "color_temp", color_temp
+                    )
         return success, err
 
     async def set_color(
@@ -458,38 +433,36 @@ class GoveeApi(object):
         device_str, device = self._govee._get_device(device)
         if not device:
             err = f"Invalid device {device_str}, {device}"
+        elif len(color) != 3:
+            err = f"set_color: invalid value {color}, must be tuple with (r, g, b) values"
         else:
-            if len(color) != 3:
-                err = f"set_color: invalid value {color}, must be tuple with (r, g, b) values"
+            red = color[0]
+            green = color[1]
+            blue = color[2]
+            if red < 0 or red > 255:
+                err = (
+                    f"set_color: invalid value {color}, red must be within 0 .. 254"
+                )
+            elif green < 0 or green > 255:
+                err = f"set_color: invalid value {color}, green must be within 0 .. 254"
+            elif blue < 0 or blue > 255:
+                err = f"set_color: invalid value {color}, blue must be within 0 .. 254"
             else:
-                red = color[0]
-                green = color[1]
-                blue = color[2]
-                if red < 0 or red > 255:
-                    err = (
-                        f"set_color: invalid value {color}, red must be within 0 .. 254"
-                    )
-                elif green < 0 or green > 255:
-                    err = f"set_color: invalid value {color}, green must be within 0 .. 254"
-                elif blue < 0 or blue > 255:
-                    err = f"set_color: invalid value {color}, blue must be within 0 .. 254"
-                else:
-                    command = "color"
-                    command_color = {"r": red, "g": green, "b": blue}
-                    result, err = await self._control(device, command, command_color)
-                    if not err:
-                        success = self._is_success_result_message(result)
-                        if success:
-                            self._govee._update_state(
-                                GoveeSource.HISTORY, device, "color", color
-                            )
+                command = "color"
+                command_color = {"r": red, "g": green, "b": blue}
+                result, err = await self._control(device, command, command_color)
+                if not err:
+                    success = self._is_success_result_message(result)
+                    if success:
+                        self._govee._update_state(
+                            GoveeSource.HISTORY, device, "color", color
+                        )
         return success, err
 
     def _get_lock_seconds(self, utcSeconds: int) -> int:
         """Get seconds to wait."""
         seconds_lock = utcSeconds - self._govee._utcnow()
-        if seconds_lock < 0:
-            seconds_lock = 0
+        seconds_lock = max(seconds_lock, 0)
         return seconds_lock
 
     async def _control(
@@ -503,39 +476,38 @@ class GoveeApi(object):
         err = None
         if not device:
             err = f"Invalid device {device_str}, {device}"
+        elif not device.controllable:
+            err = f"Device {device.device} is not controllable"
+            _LOGGER.debug(f"control {device_str} not possible: {err}")
+        elif command not in device.support_cmds:
+            err = f"Command {command} not in supported commands on device {device.device}"
+            _LOGGER.warning(f"control {device_str} not possible: {err}")
         else:
-            if not device.controllable:
-                err = f"Device {device.device} is not controllable"
-                _LOGGER.debug(f"control {device_str} not possible: {err}")
-            elif not command in device.support_cmds:
-                err = f"Command {command} not in supported commands on device {device.device}"
-                _LOGGER.warning(f"control {device_str} not possible: {err}")
-            else:
-                while True:
-                    seconds_locked = self._get_lock_seconds(device.lock_set_until)
-                    if not seconds_locked:
-                        break
-                    _LOGGER.debug(
-                        f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}"
+            while True:
+                seconds_locked = self._get_lock_seconds(device.lock_set_until)
+                if not seconds_locked:
+                    break
+                _LOGGER.debug(
+                    f"control {device_str} is locked for {seconds_locked} seconds. Command waiting: {cmd}"
+                )
+                await asyncio.sleep(seconds_locked)
+            json = {"device": device.device, "model": device.model, "cmd": cmd}
+            await self.rate_limit_delay()
+            async with self._api_put(
+                url=_API_DEVICES_CONTROL, json=json
+            ) as response:
+                if response.status == 200:
+                    device.lock_set_until = (
+                        self._govee._utcnow() + DELAY_SET_FOLLOWING_SET_SECONDS
                     )
-                    await asyncio.sleep(seconds_locked)
-                json = {"device": device.device, "model": device.model, "cmd": cmd}
-                await self.rate_limit_delay()
-                async with self._api_put(
-                    url=_API_DEVICES_CONTROL, json=json
-                ) as response:
-                    if response.status == 200:
-                        device.lock_set_until = (
-                            self._govee._utcnow() + DELAY_SET_FOLLOWING_SET_SECONDS
-                        )
-                        device.lock_get_until = (
-                            self._govee._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
-                        )
-                        result = await response.json()
-                    else:
-                        text = await response.text()
-                        err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
-                        _LOGGER.warning(f"control {device_str} failed: {err}")
+                    device.lock_get_until = (
+                        self._govee._utcnow() + DELAY_GET_FOLLOWING_SET_SECONDS
+                    )
+                    result = await response.json()
+                else:
+                    text = await response.text()
+                    err = f"API-Error {response.status} on command {cmd}: {text} for device {device}"
+                    _LOGGER.warning(f"control {device_str} failed: {err}")
         return result, err
 
     async def _get_device_state(
@@ -561,15 +533,16 @@ class GoveeApi(object):
             )
             result = device
             _LOGGER.debug(
-                f"state object returned from cache: {result}, next state for {device.device} from api allowed in {seconds_locked} seconds"
+                f'state object returned from cache: {result}, next state for {result.device} from api allowed in {seconds_locked} seconds'
             )
+
         else:
             params = {"device": device.device, "model": device.model}
             async with self._api_get(url=_API_DEVICES_STATE, params=params) as response:
                 if response.status == 200:
                     json_obj = await response.json()
                     if not json_obj:
-                        err = f"API returned OK but no valid json."
+                        err = "API returned OK but no valid JSON."
                         result = device
                     else:
                         prop_online = False
@@ -597,17 +570,15 @@ class GoveeApi(object):
                             else:
                                 _LOGGER.debug(f"unknown state property '{prop}'")
 
-                        if not prop_online:
-                            if self._govee.config_offline_is_off is not None:
-                                # global option
-                                if self._govee.config_offline_is_off:
-                                    prop_power_state = False
-                            elif device.config_offline_is_off:
-                                # learning option
-                                prop_power_state = False
-
+                        if not prop_online and (
+                            self._govee.config_offline_is_off is not None
+                            and self._govee.config_offline_is_off
+                            or self._govee.config_offline_is_off is None
+                            and device.config_offline_is_off
+                        ):
+                            prop_power_state = False
                         # autobrightness learning
-                        if device.learned_get_brightness_max == None or (
+                        if device.learned_get_brightness_max is None or (
                             device.learned_get_brightness_max == 100
                             and prop_brightness > 100
                         ):

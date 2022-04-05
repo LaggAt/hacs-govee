@@ -1,5 +1,4 @@
 import copy
-import queue
 
 from govee_api_laggat import GoveeDevice, GoveeLearnedInfo, GoveeSource
 
@@ -35,6 +34,7 @@ JSON_OK_RESPONSE = {"code": 200, "data": {}, "message": "Success"}
 
 # light device (get new instance on every run to avoid the need for copy.deepcopy())
 
+
 def get_dummy_device_H6163() -> GoveeDevice:
     return GoveeDevice(
         device=JSON_DEVICE_H6163["device"],
@@ -63,6 +63,7 @@ def get_dummy_device_H6163() -> GoveeDevice:
         config_offline_is_off=False,
     )
 
+
 def get_dummy_device_H6104() -> GoveeDevice:
     return GoveeDevice(
         device=JSON_DEVICE_H6104["device"],
@@ -90,12 +91,14 @@ def get_dummy_device_H6104() -> GoveeDevice:
         before_set_brightness_turn_on=False,
         config_offline_is_off=False,
     )
+
+
 DUMMY_DEVICES = copy.deepcopy({
     get_dummy_device_H6163().device: get_dummy_device_H6163(),
     get_dummy_device_H6104().device: get_dummy_device_H6104(),
 })
 
-# json results for light states
+# JSON results for light states
 JSON_DEVICE_STATE = copy.deepcopy({
     "data": {
         "device": JSON_DEVICE_H6163["device"],

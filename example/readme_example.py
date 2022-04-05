@@ -10,16 +10,22 @@ async def all_examples(api_key, your_learning_storage):
     async with Govee(api_key, learning_storage=your_learning_storage) as govee:
         # i will explain that learning_storage below.
 
-        # check connection: never fails, just tells if we can connect the API. no auth needed.
+        # check connection: never fails, just tells if we can connect the API.
         online = await govee.check_connection()
         # you may also register for an event, when api is going offline/online
         govee.events.online += lambda is_online: print(f"API is online: {is_online}")
         # you may also ask if the client was online the last time it tried to connect:
-        last_online_state = govee.online
-        # ping endpoint in Govee API (also uses no auth/api_key)
-        ping_ms, err = await govee.ping()
+        _ = govee.online
         # get devices list - this is mandatory, you need to successfully get the devices first!
         devices, err = await govee.get_devices()
+        if err:  # TODO: Put in proper exception for async context manager
+            print(err)
+            await govee.close()
+            return
+        if not devices:
+            print('No devices found')
+            await govee.close()
+            return
         # get states
         devices = (
             await govee.get_states()
@@ -53,9 +59,16 @@ async def all_examples(api_key, your_learning_storage):
 
     ### without async content manager:
     govee = await Govee.create(api_key, learning_storage=your_learning_storage)
-    ping_ms, err = await govee.ping()  # all commands as above
+    if err:
+        print(err)
+        await govee.close()
+        return
     # don't forget the mandatory get_devices!
     devices, err = await govee.get_devices()
+    if not devices:
+        print('No devices found')
+        await govee.close()
+        return
     # let's turn off the light at the end
     success, err = await govee.turn_off(cache_device.device)
     await govee.close()
