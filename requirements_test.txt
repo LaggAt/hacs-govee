@@ -3,6 +3,7 @@ black==20.8b1
 colorlog==4.6.2
 coveralls
 dacite==1.6.0
+events>=0.3
 flake8
 govee_api_laggat
 homeassistant
