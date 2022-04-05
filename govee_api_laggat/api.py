@@ -222,7 +222,9 @@ class GoveeApi(object):
 
     async def check_connection(self) -> bool:
         """Check connection to API."""
-        # TODO: ping is removed from API, get devices list here!
+        # TODO: remove check_connection, ping in later versions. API doesn't provide these anymore
+        # for now, we mimic check_connection by getting the device list.
+        await self.get_devices()
         return self._govee.online
 
     async def get_devices(self) -> Tuple[List[GoveeDevice], str]:

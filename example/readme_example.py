@@ -10,7 +10,7 @@ async def all_examples(api_key, your_learning_storage):
     async with Govee(api_key, learning_storage=your_learning_storage) as govee:
         # i will explain that learning_storage below.
 
-        # check connection: never fails, just tells if we can connect the API. no auth needed.
+        # check connection: never fails, just tells if we can connect the API.
         online = await govee.check_connection()
         # you may also register for an event, when api is going offline/online
         govee.events.online += lambda is_online: print(f"API is online: {is_online}")
