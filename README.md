@@ -113,7 +113,7 @@ Then in Settings - Logs click on “full logs” button and add them to the bug 
 
 ## Caveats
 
-You can set a pull interval, but don't set it too low as the API has a limit of 60 requests per minute, and each device needs one request per state pull and control action.
+You can set a poll interval, but don't set it too low as the API has a limit of 60 requests per minute, and each device needs one request per state pull and control action.
 If you have more than one lamp use a higher interval. Govee wants to implement a single request for all devices in 2021.
 
 Once the integration is active, you will see all your registered devices, and may control on/off, brightness, color temperature and color.
