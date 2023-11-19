@@ -27,7 +27,7 @@ jobs:
         pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
-  
+
   bump-alpha:
     needs: test
     if: |
@@ -39,7 +39,7 @@ jobs:
       matrix:
         python-version: ['3.x']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
         fetch-depth: 0
@@ -63,7 +63,7 @@ jobs:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         tags: "true"
         branch: ${{ github.ref }}
-  
+
   bump-beta:
     needs: test
     if: |
@@ -75,7 +75,7 @@ jobs:
       matrix:
         python-version: ['3.x']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
         fetch-depth: 0
@@ -99,7 +99,7 @@ jobs:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         tags: "true"
         branch: ${{ github.ref }}
-  
+
   bump-stable:
     needs: test
     if: |
@@ -111,7 +111,7 @@ jobs:
       matrix:
         python-version: ['3.x']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
         fetch-depth: 0
@@ -135,7 +135,7 @@ jobs:
         github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         tags: "true"
         branch: ${{ github.ref }}
-  
+
   deploy:
     needs: test
     if: |
@@ -144,7 +144,7 @@ jobs:
       (github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/stable')
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
