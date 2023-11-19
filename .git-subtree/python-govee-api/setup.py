@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 INSTALL_REQUIRES = [
-    "aiohttp>=3.7.1",
+    "aiohttp>=3.7.4.post0",
     "bios>=0.1.2",
     "certifi>=2021.10.8",
     "dacite>=1.6.0",

@@ -1,8 +1,8 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
 	// for development container on remote pi we need to clone source into the remote container, instead of bind:
-	"workspaceFolder": "/workspaces/hacs-govee",
-	"workspaceMount": "source=/usr/share/hassio/share/dev/hacs-govee,target=/workspaces/hacs-govee,type=bind,consistency=delegated",
+	// "workspaceFolder": "/workspaces/hacs-govee",
+	// "workspaceMount": "source=/usr/share/hassio/share/dev/hacs-govee,target=/workspaces/hacs-govee,type=bind,consistency=delegated",
 	// "remoteEnv": {
 	// 	"WS_PATH": "..",
 	// },
@@ -11,13 +11,15 @@
 	// },
 	//TODO: finish your own container for faster dev setup
 	//"image": "laggat/hacs-base-container",
-	"image": "ludeeus/container:python-base-debian",
+	//cannot use arm64 Image from here, as my raspberry is ARMv7 (32bit)
+	// "image": "ghcr.io/ludeeus/debian/base:latest",
+	//"image": "ludeeus/container:python-base-debian",
+	"image": "ghcr.io/laggat/ha-devcontainer:main",
 	//"dockerFile": "Dockerfile",
 	"name": "Govee integration development",
-	"context": "..",
-	// "appPort": [
-	// 	"9123:8123"
-	// ],
+	"appPort": [
+		"9123:8123"
+	],
 	"postCreateCommand": "/bin/chmod +x /workspaces/hacs-govee/.devcontainer/*.sh && /workspaces/hacs-govee/.devcontainer/postCreateContainer.sh",
 	"extensions": [
 		"cschleiden.vscode-github-actions",
@@ -29,10 +31,18 @@
 		"ms-python.python",
 		"ms-python.vscode-pylance",
 		"ryanluker.vscode-coverage-gutters",
-		"tht13.python",
+		"tht13.python"
 	],
 	"settings": {
-		"files.eol": "\n",
+		//linux line breaks
+        "files.eol": "\n",
+        //prefer ZSH shell
+        "terminal.integrated.profiles.linux": {
+            "zsh": {
+                "path": "/usr/bin/zsh"
+            }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
 		"editor.tabSize": 4,
 		"python.pythonPath": "/usr/bin/python3",
 		"python.analysis.autoSearchPaths": false,
@@ -44,11 +54,11 @@
 		"editor.formatOnType": true,
 		"files.trimTrailingWhitespace": true,
 		// to develop on your raspberry pi 4 (for BLE):
-		"docker.host": "ssh://root@192.168.144.5",
+		//"docker.host": "ssh://root@192.168.144.5"
 		// also set docker.host for this workspace in vscode
 		// create keys with "ssh-keygen -t rsa -b 4096"
 		// also run this on your pi
-		// copy your local id-rsa.pub content to /root/.ssh/authorized_keys
+		// copy your local C:\Users\root\.ssh\id_rsa.pub content to /root/.ssh/authorized_keys
 		// then configure remote-ssh to use key auth: "Remote-SSH: Open Configuration file":
 		// Host 192.168.144.5
 		//   HostName 192.168.144.5
@@ -56,12 +66,13 @@
 		//   ForwardAgent yes
 		//   IdentityFile C:\Users\root\.ssh\id_rsa
 		// then in "Remote Containers: Re-build and re-open in container"
+		// if this doesn't work or takes forever: stop frigate, or any cpu hungry process on your pi! Also check if your local "Docker Desktop" is working (if not: reinstall)!
 	},
 	"runArgs": [
 		"--name",
 		"devcontainer_govee",
-		"--network",
-		"host",
+		// "--network",
+		// "host",
 		"--privileged",
 		"-v",
 		"/etc/machine-id:/etc/machine-id:ro",
@@ -70,6 +81,17 @@
 		"-v",
 		"/dev:/dev:ro",
 		"-v",
-		"/run/udev:/run/udev:ro",
-	]
+		"/run/udev:/run/udev:ro"
+	],
+	//Environment Variables to set in the dev container
+	"containerEnv": {},
+	//security options
+	"securityOpt": [
+		"seccomp:unconfined",
+		"apparmor:unconfined"
+	],
+	//user defaults to vscode, let's use root for easier handling for now
+	"remoteUser": "root",
+	"containerUser": "root",
+	"context": ".."
 }
