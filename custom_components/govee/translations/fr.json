@@ -1,0 +1,41 @@
+{
+  "title": "Govee",
+  "config": {
+    "abort": {
+      "already_configured": "Déjà configuré. Une seule configuration possible."
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter. La clé d'API est-elle correcte et la connexion Internet fonctionne-t-elle?",
+      "unknown": "Erreure inconnue."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "clé d'API",
+          "delay": "Intervalle d'interrogation"
+        },
+        "description": "Obtenez votre clé API à partir de l'application Govee Home. Pour plus de détails, visitez https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Impossible de se connecter. La clé d'API est-elle correcte et la connexion Internet fonctionne-t-elle?",
+      "unknown": "Erreure inconnue.",
+      "disabled_attribute_updates_wrong": "Format incorrect, voir le 'lisez-moi' ci-dessus."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "Clé d'API (nécessite un redémarrage)",
+          "delay": "Intervalle d'interrogation (nécessite un redémarrage)",
+          "use_assumed_state": "Utiliser 'état supposé' (deux boutons). Par défaut : Vrai",
+          "offline_is_off": "Lorsqu'une DEL est hors ligne, affichez-la comme éteinte (la valeur par défaut ne change pas d'état). Par défaut : Faux",
+          "disable_attribute_updates": "DÉSACTIVER les mises à jour d'état. Espace pour désactiver. Lisez le 'lisez-moi' ci-dessus !"
+        },
+        "title": "Options",
+        "description": "Configurez l'intégration Govee. Pour plus de détails, visitez https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  }
+}
