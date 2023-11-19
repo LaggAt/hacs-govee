@@ -2,8 +2,7 @@
 
 import logging
 
-from govee_api_laggat import Govee, GoveeNoLearningStorage
-from govee_api_laggat.govee_errors import GoveeError
+from govee_api_laggat import Govee, GoveeNoLearningStorage, GoveeError
 
 from homeassistant import config_entries, core, exceptions
 import homeassistant.helpers.config_validation as cv
