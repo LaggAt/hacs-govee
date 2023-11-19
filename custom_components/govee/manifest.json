@@ -1,15 +1,15 @@
 {
-  "codeowners": ["@LaggAt"],
   "domain": "govee",
   "name": "Govee",
-  "version": "0.2.2",
+  "codeowners": ["@LaggAt"],
   "config_flow": true,
+  "dependencies": [],
   "documentation": "https://github.com/LaggAt/hacs-govee/blob/master/README.md",
+  "homekit": {},
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
   "requirements": ["govee-api-laggat==0.2.2", "dacite==1.8.0"],
-  "iot_class": "cloud_polling",
   "ssdp": [],
-  "zeroconf": [],
-  "homekit": {},
-  "dependencies": []
+  "version": "0.2.2",
+  "zeroconf": []
 }

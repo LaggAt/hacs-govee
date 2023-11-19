@@ -1,9 +1,8 @@
 {
     "name": "govee",
-    "hacs": "0.2.2",
     "domains": [
         "light"
     ],
     "iot_class": "Cloud Polling",
-    "homeassistant": "2021.4.5"
+    "homeassistant": "2023.11.2"
 }
