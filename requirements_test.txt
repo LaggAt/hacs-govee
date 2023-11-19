@@ -2,7 +2,7 @@ asynctest>=0.13.0
 black>=22.3.0
 colorlog==4.6.2
 coveralls
-dacite==1.6.0
+dacite==1.8.0
 events>=0.3
 flake8
 govee_api_laggat
