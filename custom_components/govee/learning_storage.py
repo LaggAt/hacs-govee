@@ -3,7 +3,6 @@
 from dataclasses import asdict
 import logging
 
-import dacite
 from govee_api_laggat import GoveeAbstractLearningStorage, GoveeLearnedInfo
 import yaml
 
@@ -26,12 +25,12 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
         learned_info = {}
         try:
             learned_dict = load_yaml(self._config_dir + LEARNING_STORAGE_YAML)
-            learned_info = {
-                device: dacite.from_dict(
-                    data_class=GoveeLearnedInfo, data=learned_dict[device]
-                )
-                for device in learned_dict
-            }
+
+            for key, value in learned_dict.items():
+                learnedInfoItem  = GoveeLearnedInfo()
+                learnedInfoItem.__dict__.update(**value)
+                learned_info[key] = learnedInfoItem
+                
             _LOGGER.info(
                 "Loaded learning information from %s.",
                 self._config_dir + LEARNING_STORAGE_YAML,
@@ -43,7 +42,6 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
                 self._config_dir + LEARNING_STORAGE_YAML,
             )
         except (
-            dacite.DaciteError,
             TypeError,
             UnicodeDecodeError,
             yaml.YAMLError,
