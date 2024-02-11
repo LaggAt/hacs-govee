@@ -28,7 +28,7 @@
       "user": {
         "data": {
           "api_key": "Chave de API (requer reinicialização)",
-          "delay": "Intervalo de escaneamento (requer reinicialização)",
+          "delay": "Segundos entre verificações (requer reinicialização)",
           "use_assumed_state": "Use 'estado presumido' (dois botões). Padrão: true",
           "offline_is_off": "Quando um led estiver offline, mostre-o como desligado (o padrão não muda de estado). Padrão: False",
           "disable_attribute_updates": "DESATIVAR atualizações de estado. Espaço para desativar. Leia o README acima!"
