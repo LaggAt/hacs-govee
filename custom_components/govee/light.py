@@ -301,9 +301,7 @@ class GoveeLightEntity(LightEntity):
     @property
     def brightness(self):
         """Return the brightness value."""
-        # govee is reporting 0 to 254 - home assistant uses 1 to 255
-        scale = (0, 254)
-        return value_to_brightness(scale, self._device.brightness)
+        return value_to_brightness((0, 254), self._device.brightness)
 
     @property
     def color_temp_kelvin(self):
