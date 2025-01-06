@@ -3,16 +3,16 @@
 from datetime import timedelta, datetime
 import logging
 
+from propcache import cached_property
+
 from govee_api_laggat import Govee, GoveeDevice, GoveeError
 from govee_api_laggat.govee_dtos import GoveeSource
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_HS_COLOR,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_COLOR,
-    SUPPORT_COLOR_TEMP,
+    ColorMode,
     LightEntity,
 )
 from homeassistant.const import CONF_DELAY
@@ -156,17 +156,21 @@ class GoveeLightEntity(LightEntity):
         """Lights internal state."""
         return self._device  # self._hub.state(self._device)
 
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        support_flags = 0
-        if self._device.support_brightness:
-            support_flags |= SUPPORT_BRIGHTNESS
+    @cached_property
+    def supported_color_modes(self) -> set[ColorMode]:
+        """Get supported color modes."""
+        color_mode = set()
         if self._device.support_color:
-            support_flags |= SUPPORT_COLOR
+            color_mode.add(ColorMode.HS)
         if self._device.support_color_tem:
-            support_flags |= SUPPORT_COLOR_TEMP
-        return support_flags
+            color_mode.add(ColorMode.COLOR_TEMP)
+        if not color_mode:
+            # brightness or on/off must be the only supported mode
+            if self._device.support_brightness:
+                color_mode.add(ColorMode.BRIGHTNESS)
+            else:
+                color_mode.add(ColorMode.ONOFF)
+        return color_mode
 
     async def async_turn_on(self, **kwargs):
         """Turn device on."""
@@ -186,15 +190,14 @@ class GoveeLightEntity(LightEntity):
             just_turn_on = False
             bright_set = brightness - 1
             _, err = await self._hub.set_brightness(self._device, bright_set)
-        if ATTR_COLOR_TEMP in kwargs:
-            color_temp = kwargs.pop(ATTR_COLOR_TEMP)
+        if ATTR_COLOR_TEMP_KELVIN in kwargs:
+            color_temp = kwargs.pop(ATTR_COLOR_TEMP_KELVIN)
             just_turn_on = False
-            color_temp_kelvin = color.color_temperature_mired_to_kelvin(color_temp)
-            if color_temp_kelvin > COLOR_TEMP_KELVIN_MAX:
-                color_temp_kelvin = COLOR_TEMP_KELVIN_MAX
-            elif color_temp_kelvin < COLOR_TEMP_KELVIN_MIN:
-                color_temp_kelvin = COLOR_TEMP_KELVIN_MIN
-            _, err = await self._hub.set_color_temp(self._device, color_temp_kelvin)
+            if color_temp > COLOR_TEMP_KELVIN_MAX:
+                color_temp = COLOR_TEMP_KELVIN_MAX
+            elif color_temp < COLOR_TEMP_KELVIN_MIN:
+                color_temp = COLOR_TEMP_KELVIN_MIN
+            _, err = await self._hub.set_color_temp(self._device, color_temp)
 
         # if there is no known specific command - turn on
         if just_turn_on:
@@ -241,7 +244,6 @@ class GoveeLightEntity(LightEntity):
             "name": self.name,
             "manufacturer": "Govee",
             "model": self._device.model,
-            "via_device": (DOMAIN, "Govee API (cloud)"),
         }
 
     @property
@@ -293,19 +295,17 @@ class GoveeLightEntity(LightEntity):
     @property
     def color_temp(self):
         """Return the color_temp of the light."""
-        if not self._device.color_temp:
-            return None
-        return color.color_temperature_kelvin_to_mired(self._device.color_temp)
+        return self._device.color_temp
 
     @property
-    def min_mireds(self):
+    def min_color_temp_kelvin(self):
         """Return the coldest color_temp that this light supports."""
-        return color.color_temperature_kelvin_to_mired(COLOR_TEMP_KELVIN_MAX)
+        return COLOR_TEMP_KELVIN_MAX
 
     @property
-    def max_mireds(self):
+    def max_color_temp_kelvin(self):
         """Return the warmest color_temp that this light supports."""
-        return color.color_temperature_kelvin_to_mired(COLOR_TEMP_KELVIN_MIN)
+        return COLOR_TEMP_KELVIN_MIN
 
     @property
     def extra_state_attributes(self):
