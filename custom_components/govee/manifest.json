@@ -10,6 +10,6 @@
   "issue_tracker": "https://github.com/LaggAt/hacs-govee/issues",
   "requirements": ["govee-api-laggat==0.2.2", "dacite==1.8.0"],
   "ssdp": [],
-  "version": "2023.11.1",
+  "version": "2025.1.1",
   "zeroconf": []
 }
