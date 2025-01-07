@@ -29,8 +29,8 @@
         "data": {
           "api_key": "API klíč (vyžaduje restart)",
           "delay": "Interval obnovy (vyžaduje restart)",
-          "use_assumed_state": "Použát 'předpokládaný stav' (dvě tlačítka). Výchozí: Ano",
-          "offline_is_off": "Když je světlo offline, zobrazit jako vynuté (výchozí nezmění stav). Výchozí: Ne",
+          "use_assumed_state": "Použít 'předpokládaný stav' (dvě tlačítka). Výchozí: Ano",
+          "offline_is_off": "Když je světlo offline, zobrazit jako vypnuté (výchozí nezmění stav). Výchozí: Ne",
           "disable_attribute_updates": "ZAKÁZAT aktualizace stavu. Přečtěte si README!"
         },
         "title": "Nastavení",
