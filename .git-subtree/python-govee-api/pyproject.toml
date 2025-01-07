@@ -1,7 +1,0 @@
-[tool.commitizen]
-version = "2023.11.1"
-version_files = [
-    "govee_api_laggat/__version__.py:VERSION",
-    "setup.py",
-]
-bump_message = "bump: version $current_version → $new_version"
