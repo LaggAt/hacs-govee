@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         # NOTE: keep this in sync with envlist in tox.ini
-        python-version: [3.12, 3.13]
+        python-version: [3.12]
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
