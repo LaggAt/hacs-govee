@@ -16,16 +16,19 @@ LEARNING_STORAGE_YAML = "/govee_learning.yaml"
 class GoveeLearningStorage(GoveeAbstractLearningStorage):
     """The govee_api_laggat library uses this to store learned information about lights."""
 
-    def __init__(self, config_dir, *args, **kwargs):
+    def __init__(self, hass, *args, **kwargs):
         """Get the config directory."""
         super().__init__(*args, **kwargs)
-        self._config_dir = config_dir
+        self._hass = hass
+        self._config_dir = hass.config.config_dir
 
     async def read(self):
         """Restore from yaml file."""
         learned_info = {}
         try:
-            learned_dict = load_yaml(self._config_dir + LEARNING_STORAGE_YAML)
+            learned_dict = self._hass.async_add_executor_job(
+                load_yaml, self._config_dir + LEARNING_STORAGE_YAML
+            )
             learned_info = {
                 device: dacite.from_dict(
                     data_class=GoveeLearnedInfo, data=learned_dict[device]
