@@ -293,19 +293,19 @@ class GoveeLightEntity(LightEntity):
         return self._device.brightness + 1
 
     @property
-    def color_temp(self):
+    def color_temp_kelvin(self):
         """Return the color_temp of the light."""
         return self._device.color_temp
 
     @property
     def min_color_temp_kelvin(self):
         """Return the coldest color_temp that this light supports."""
-        return COLOR_TEMP_KELVIN_MAX
+        return COLOR_TEMP_KELVIN_MIN
 
     @property
     def max_color_temp_kelvin(self):
         """Return the warmest color_temp that this light supports."""
-        return COLOR_TEMP_KELVIN_MIN
+        return COLOR_TEMP_KELVIN_MAX
 
     @property
     def extra_state_attributes(self):
