@@ -64,12 +64,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     _, err = await hub.get_devices()
     if err:
         _LOGGER.warning("Could not connect to Govee API: %s", err)
-        await hub.rate_limit_delay()
+        await hub._api.rate_limit_delay()
         await async_unload_entry(hass, entry)
         raise PlatformNotReady()
 
-    for component in PLATFORMS:
-        await hass.config_entries.async_forward_entry_setup(entry, component)
+    # Resolve deprecation in latest HA by moving to setups vs setup
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
@@ -93,7 +93,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     return unload_ok
 
 
-def _unload_component_entry(
+async def _unload_component_entry(
     hass: HomeAssistant, entry: ConfigEntry, component: str
 ) -> bool:
     """Unload an entry for a specific component."""
