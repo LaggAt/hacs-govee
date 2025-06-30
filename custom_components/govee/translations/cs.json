@@ -1,0 +1,41 @@
+{
+  "title": "Govee",
+  "config": {
+    "abort": {
+      "already_configured": "Je povolena pouze jedna konfigurace."
+    },
+    "error": {
+      "cannot_connect": "Nelze se připojit. Je API-Klíč v pořádku a internetové připojení funkční?",
+      "unknown": "Neznámá chyba."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API klíč",
+          "delay": "Interval obnovy"
+        },
+        "description": "API Klíč získáte v Govee Home Aplikaci. Detailní postup najdete zde https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Nelze se připojit. Je API-Klíč v pořádku a internetové připojení funkční?",
+      "unknown": "Neznámá chyba.",
+      "disabled_attribute_updates_wrong": "Špatný formát, přečtěte si README."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "api_key": "API klíč (vyžaduje restart)",
+          "delay": "Interval obnovy (vyžaduje restart)",
+          "use_assumed_state": "Použít 'předpokládaný stav' (dvě tlačítka). Výchozí: Ano",
+          "offline_is_off": "Když je světlo offline, zobrazit jako vypnuté (výchozí nezmění stav). Výchozí: Ne",
+          "disable_attribute_updates": "ZAKÁZAT aktualizace stavu. Přečtěte si README!"
+        },
+        "title": "Nastavení",
+        "description": "Nastavení Govee integrace. Pro více informací jděte na https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+      }
+    }
+  }
+}

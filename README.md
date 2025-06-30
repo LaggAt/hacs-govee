@@ -13,7 +13,7 @@ is required, you need to obtain it in the 'Govee Home' app on your mobile device
 
 A lot of effort is going into that integration. So if you can afford it and want to support us:
 
-<a href="https://www.buymeacoffee.com/LaggAt" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/theogre" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 Thank you!
 
@@ -21,7 +21,7 @@ Thank you!
 
 We think so. It is used often, and the support thread is active.
 
-![usage statistics per version](https://raw.githubusercontent.com/LaggAt/actions/main/output/goveestats_installations.png)
+![usage statistics per version](https://raw.githubusercontent.com/TheOneOgre/actions/main/output/goveestats_installations.png)
 
 Usage Data is taken from Home Assistant analytics, and plotted over time by us. You need to enable analytics if you want to show here.
 
@@ -29,7 +29,7 @@ Usage Data is taken from Home Assistant analytics, and plotted over time by us. 
 
 This graph uses the same library to do simple checks. If you see round dots on the right of the graph (= today), probably there is an issue.
 
-![Govee API running?](https://raw.githubusercontent.com/LaggAt/actions/main/output/govee-api-up.png)
+![Govee API running?](https://raw.githubusercontent.com/TheOneOgre/actions/main/output/govee-api-up.png)
 
 ## Pulling or assuming state
 
@@ -53,7 +53,7 @@ We can have state from two sources: 'API' and 'HISTORY'. History for example mea
 So let's say we have an issue, that the ON/OFF state from API is wrong, we always get OFF. (This happended, and this is why I developed that feature). If we disable the power state we get from API we could work around this, and thats exactly what we do:
 
 1. 'API' or 'History': state from which source do we want to disable? In our example the API state is wrong, as we could see in logs, so we choose 'API'
-2. Look up the attribute you want to disable in GoveeDevice data class. Don't worry, you don't need to understand any of the code here. [Here is that data class (click)](https://github.com/LaggAt/python-govee-api/blob/master/govee_api_laggat/govee_dtos.py). In our Example we will find 'power_state'
+2. Look up the attribute you want to disable in GoveeDevice data class. Don't worry, you don't need to understand any of the code here. [Here is that data class (click)](https://github.com/TheOneOgre/python-govee-api/blob/master/govee_api_laggat/govee_dtos.py). In our Example we will find 'power_state'
 3. Next, in Home Assistant we open Configuration - Integrations and click on the options on the Govee integration. Here is an example how this config option could look:
 
 ![DISABLE state updates option](https://community-assets.home-assistant.io/original/3X/6/c/6cffe0de8b100ef4efc0e460482ff659b8f9444c.png)

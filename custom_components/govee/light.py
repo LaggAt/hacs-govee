@@ -3,6 +3,7 @@
 from datetime import timedelta, datetime
 import logging
 
+from homeassistant.util.color import value_to_brightness
 from propcache import cached_property
 
 from govee_api_laggat import Govee, GoveeDevice, GoveeError
@@ -26,7 +27,6 @@ from .const import (
     COLOR_TEMP_KELVIN_MIN,
     COLOR_TEMP_KELVIN_MAX,
 )
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,6 +155,18 @@ class GoveeLightEntity(LightEntity):
     def _state(self):
         """Lights internal state."""
         return self._device  # self._hub.state(self._device)
+
+    @property
+    def color_mode(self) -> ColorMode:
+        """Get color mode."""
+        current = list(self._device.color)
+        if self._device.color_temp > 0:
+            return ColorMode.COLOR_TEMP
+        if list([0, 0, 0]) != current:
+            return ColorMode.HS
+        if self._device.brightness > 0:
+            return ColorMode.BRIGHTNESS
+        return ColorMode.ONOFF
 
     @cached_property
     def supported_color_modes(self) -> set[ColorMode]:
@@ -289,23 +301,22 @@ class GoveeLightEntity(LightEntity):
     @property
     def brightness(self):
         """Return the brightness value."""
-        # govee is reporting 0 to 254 - home assistant uses 1 to 255
-        return self._device.brightness + 1
+        return value_to_brightness((0, 254), self._device.brightness)
 
     @property
-    def color_temp(self):
+    def color_temp_kelvin(self):
         """Return the color_temp of the light."""
         return self._device.color_temp
 
     @property
     def min_color_temp_kelvin(self):
         """Return the coldest color_temp that this light supports."""
-        return COLOR_TEMP_KELVIN_MAX
+        return COLOR_TEMP_KELVIN_MIN
 
     @property
     def max_color_temp_kelvin(self):
         """Return the warmest color_temp that this light supports."""
-        return COLOR_TEMP_KELVIN_MIN
+        return COLOR_TEMP_KELVIN_MAX
 
     @property
     def extra_state_attributes(self):

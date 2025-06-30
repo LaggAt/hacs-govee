@@ -14,7 +14,7 @@
           "api_key": "API Key",
           "delay": "Poll Interval"
         },
-        "description": "Get your API Key from the Govee Home App. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+        "description": "Get your API Key from the Govee Home App. For Details see https://github.com/TheOneOgre/govee-cloud/blob/master/README.md"
       }
     }
   },
@@ -34,7 +34,7 @@
           "disable_attribute_updates": "DISABLE state updates. Space to disable. Read the README above!"
         },
         "title": "Options",
-        "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+        "description": "Configure the Govee integration. For Details see https://github.com/TheOneOgre/govee-cloud/blob/master/README.md"
       }
     }
   }
