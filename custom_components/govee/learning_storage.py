@@ -1,5 +1,6 @@
 """The Govee learned storage yaml file manager."""
 
+import asyncio
 from dataclasses import asdict
 import logging
 
@@ -25,7 +26,9 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
         """Restore from yaml file."""
         learned_info = {}
         try:
-            learned_dict = load_yaml(self._config_dir + LEARNING_STORAGE_YAML)
+            learned_dict = await asyncio.to_thread(
+                load_yaml, self._config_dir + LEARNING_STORAGE_YAML
+            )
             learned_info = {
                 device: dacite.from_dict(
                     data_class=GoveeLearnedInfo, data=learned_dict[device]
@@ -59,7 +62,9 @@ class GoveeLearningStorage(GoveeAbstractLearningStorage):
     async def write(self, learned_info):
         """Save to yaml file."""
         leaned_dict = {device: asdict(learned_info[device]) for device in learned_info}
-        save_yaml(self._config_dir + LEARNING_STORAGE_YAML, leaned_dict)
+        await asyncio.to_thread(
+            save_yaml, self._config_dir + LEARNING_STORAGE_YAML, leaned_dict
+        )
         _LOGGER.info(
             "Stored learning information to %s.",
             self._config_dir + LEARNING_STORAGE_YAML,

@@ -1,6 +1,8 @@
 """The Govee integration."""
 import asyncio
 import logging
+import ssl
+import certifi
 
 from govee_api_laggat import Govee
 import voluptuous as vol
@@ -41,6 +43,28 @@ def is_online(online: bool):
     _LOGGER.warning(msg)
 
 
+async def async_create_govee_safely(hass: HomeAssistant, api_key: str, learning_storage):
+    """Create Govee instance with SSL context pre-created to avoid blocking."""
+    # Pre-create SSL context in executor to avoid blocking the event loop
+    def _create_ssl_context():
+        return ssl.create_default_context(cafile=certifi.where())
+    
+    # Create SSL context in thread pool
+    ssl_context = await hass.async_add_executor_job(_create_ssl_context)
+    
+    # Temporarily patch ssl.create_default_context to return our pre-created context
+    original_create_default_context = ssl.create_default_context
+    ssl.create_default_context = lambda *args, **kwargs: ssl_context
+    
+    try:
+        # Now create the Govee instance - it will use our pre-created SSL context
+        hub = await Govee.create(api_key, learning_storage=learning_storage)
+        return hub
+    finally:
+        # Restore original function
+        ssl.create_default_context = original_create_default_context
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Govee from a config entry."""
 
@@ -50,8 +74,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     api_key = options.get(CONF_API_KEY, config.get(CONF_API_KEY, ""))
 
     # Setup connection with devices/cloud
-    hub = await Govee.create(
-        api_key, learning_storage=GoveeLearningStorage(hass.config.config_dir)
+    # Use our safe wrapper to avoid SSL blocking operations
+    hub = await async_create_govee_safely(
+        hass, api_key, GoveeLearningStorage(hass.config.config_dir)
     )
     # keep reference for disposing
     hass.data[DOMAIN] = {}
@@ -68,8 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         await async_unload_entry(hass, entry)
         raise PlatformNotReady()
 
-    for component in PLATFORMS:
-        await hass.config_entries.async_forward_entry_setup(entry, component)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
