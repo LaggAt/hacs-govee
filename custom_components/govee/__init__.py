@@ -69,7 +69,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         raise PlatformNotReady()
 
     for component in PLATFORMS:
-        await hass.config_entries.async_forward_entry_setup(entry, component)
+        try:
+            await hass.config_entries.async_forward_entry_setup(entry, component)
+        except AttributeError:
+            await hass.config_entries.async_forward_entry_setups(entry, (component,))
 
     return True
 
