@@ -51,7 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     # Setup connection with devices/cloud
     hub = await Govee.create(
-        api_key, learning_storage=GoveeLearningStorage(hass.config.config_dir)
+        api_key, learning_storage=GoveeLearningStorage(hass)
     )
     # keep reference for disposing
     hass.data[DOMAIN] = {}
