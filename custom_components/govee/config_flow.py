@@ -19,6 +19,34 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Recommended minimum delay to avoid hitting Govee API rate limits
+# With 10 devices and 60s polling: ~14,400 requests/day (under 10k limit)
+RECOMMENDED_MIN_DELAY = 60
+
+
+def validate_delay(delay: int) -> int:
+    """Validate delay and log warning if too low.
+
+    Govee API limit: 10,000 requests per 24 hours.
+    With N devices and delay D seconds:
+    - Daily requests = (86400 / D) * N
+
+    Example: 4 devices @ 10s = 34,560 requests/day (rate limited!)
+    Example: 4 devices @ 300s = 1,152 requests/day (safe)
+    """
+    if delay < RECOMMENDED_MIN_DELAY:
+        devices_before_limit = int(10000 / (86400 / delay))
+        _LOGGER.warning(
+            "Poll interval of %s seconds may cause API rate limits. "
+            "With this interval, you'll hit the 10,000/day limit with ~%d devices. "
+            "Recommended minimum: %s seconds (1 minute) for 10+ devices, "
+            "300 seconds (5 minutes) is safer for most setups.",
+            delay,
+            devices_before_limit,
+            RECOMMENDED_MIN_DELAY,
+        )
+    return delay
+
 
 async def validate_api_key(hass: core.HomeAssistant, user_input):
     """Validate the user input allows us to connect.
@@ -64,6 +92,8 @@ class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 user_input = await validate_api_key(self.hass, user_input)
+                # Validate delay and log warning if needed
+                validate_delay(user_input[CONF_DELAY])
 
             except CannotConnect as conn_ex:
                 _LOGGER.exception("Cannot connect: %s", conn_ex)
@@ -83,7 +113,7 @@ class GoveeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_API_KEY): cv.string,
-                    vol.Optional(CONF_DELAY, default=10): cv.positive_int,
+                    vol.Optional(CONF_DELAY, default=300): cv.positive_int,
                 }
             ),
             errors=errors,
@@ -123,6 +153,8 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                 api_key = user_input[CONF_API_KEY]
                 if old_api_key != api_key:
                     user_input = await validate_api_key(self.hass, user_input)
+                # Validate delay and log warning if needed
+                validate_delay(user_input[CONF_DELAY])
 
             except CannotConnect as conn_ex:
                 _LOGGER.exception("Cannot connect: %s", conn_ex)
@@ -172,32 +204,34 @@ class GoveeOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_DELAY,
                     default=self.config_entry.options.get(
-                        CONF_DELAY, self.config_entry.data.get(CONF_DELAY, 10)
+                        CONF_DELAY, self.config_entry.data.get(CONF_DELAY, 300)
                     ),
                 ): cv.positive_int,
-                # to options flow
-                vol.Required(
+                vol.Optional(
                     CONF_USE_ASSUMED_STATE,
-                    default=self.config_entry.options.get(CONF_USE_ASSUMED_STATE, True),
+                    default=self.config_entry.options.get(
+                        CONF_USE_ASSUMED_STATE,
+                        self.config_entry.data.get(CONF_USE_ASSUMED_STATE, True),
+                    ),
                 ): cv.boolean,
-                vol.Required(
+                vol.Optional(
                     CONF_OFFLINE_IS_OFF,
-                    default=self.config_entry.options.get(CONF_OFFLINE_IS_OFF, False),
+                    default=self.config_entry.options.get(
+                        CONF_OFFLINE_IS_OFF,
+                        self.config_entry.data.get(CONF_OFFLINE_IS_OFF, False),
+                    ),
                 ): cv.boolean,
-                # TODO: validator doesn't work, change to list?
                 vol.Optional(
                     CONF_DISABLE_ATTRIBUTE_UPDATES,
                     default=self.config_entry.options.get(
-                        CONF_DISABLE_ATTRIBUTE_UPDATES, ""
+                        CONF_DISABLE_ATTRIBUTE_UPDATES,
+                        self.config_entry.data.get(CONF_DISABLE_ATTRIBUTE_UPDATES, ""),
                     ),
                 ): cv.string,
-            },
+            }
         )
-
         return self.async_show_form(
-            step_id="user",
-            data_schema=options_schema,
-            errors=errors,
+            step_id="user", data_schema=options_schema, errors=errors
         )
 
     async def _update_options(self):
