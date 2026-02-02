@@ -12,9 +12,9 @@
       "user": {
         "data": {
           "api_key": "API Key",
-          "delay": "Poll Interval"
+          "delay": "Poll Interval (seconds)"
         },
-        "description": "Get your API Key from the Govee Home App. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+        "description": "Get your API Key from the Govee Home App. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md\n\n⚠️ Govee API Limit: 10,000 requests/24 hours. With the default 300s (5 min) interval, you can run ~30 devices safely. Lower intervals may cause rate limiting."
       }
     }
   },
@@ -28,13 +28,13 @@
       "user": {
         "data": {
           "api_key": "API Key (requires restart)",
-          "delay": "Poll Interval (requires restart)",
+          "delay": "Poll Interval in seconds (requires restart)",
           "use_assumed_state": "Use 'assumed state' (two buttons). Default: True",
           "offline_is_off": "When a led is offline, show it as off (default doesn't change state). Default: False",
           "disable_attribute_updates": "DISABLE state updates. Space to disable. Read the README above!"
         },
         "title": "Options",
-        "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md"
+        "description": "Configure the Govee integration. For Details see https://github.com/LaggAt/hacs-govee/blob/master/README.md\n\n⚠️ API Rate Limits: Govee limits to 10,000 requests/24 hours. Daily requests = (86400 / delay) × device_count. Examples:\n• 4 devices @ 300s = 1,152 req/day ✓ Safe\n• 4 devices @ 60s = 5,760 req/day ✓ Safe\n• 4 devices @ 10s = 34,560 req/day ✗ Rate limited!\n\nRecommended: 300s (5 min) for background polling. Enable 'assumed state' for instant UI feedback when controlling lights."
       }
     }
   }
