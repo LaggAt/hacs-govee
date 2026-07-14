@@ -172,6 +172,20 @@ class GoveeLightEntity(LightEntity):
                 color_mode.add(ColorMode.ONOFF)
         return color_mode
 
+    @property
+    def color_mode(self) -> ColorMode:
+        """Return the current active color mode (HA requires this when color modes are supported)."""
+        supported = self.supported_color_modes
+        if ColorMode.COLOR_TEMP in supported and self._device.color_temp:
+            return ColorMode.COLOR_TEMP
+        if ColorMode.HS in supported:
+            return ColorMode.HS
+        if ColorMode.COLOR_TEMP in supported:
+            return ColorMode.COLOR_TEMP
+        if ColorMode.BRIGHTNESS in supported:
+            return ColorMode.BRIGHTNESS
+        return ColorMode.ONOFF
+
     async def async_turn_on(self, **kwargs):
         """Turn device on."""
         _LOGGER.debug(
