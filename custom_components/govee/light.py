@@ -2,6 +2,7 @@
 
 from datetime import timedelta, datetime
 import logging
+from typing import Optional
 
 from propcache import cached_property
 
@@ -54,20 +55,25 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Add devices
     for device in hub.devices:
         add_entity(async_add_entities, hub, entry, coordinator, device)
-    # async_add_entities(
-    #     [
-    #         GoveeLightEntity(hub, entry.title, coordinator, device)
-    #         for device in hub.devices
-    #     ],
-    #     update_before_add=False,
-    # )
 
 
+# --- BEGIN H5082 MODIFICATION ---
 def add_entity(async_add_entities, hub, entry, coordinator, device):
-    async_add_entities(
-        [GoveeLightEntity(hub, entry.title, coordinator, device)],
-        update_before_add=False,
-    )
+    """Add Govee entities, splitting dual plugs into two switch/light entities."""
+    if device.model == "H5082":
+        async_add_entities(
+            [
+                GoveeLightEntity(hub, entry.title, coordinator, device, socket=1),
+                GoveeLightEntity(hub, entry.title, coordinator, device, socket=2),
+            ],
+            update_before_add=False,
+        )
+    else:
+        async_add_entities(
+            [GoveeLightEntity(hub, entry.title, coordinator, device)],
+            update_before_add=False,
+        )
+# --- END H5082 MODIFICATION ---
 
 
 class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
@@ -114,7 +120,6 @@ class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
                 else:
                     hub.config_offline_is_off = None  # allow override in learning info
 
-                # govee will change this to a single request in 2021
                 device_states = await hub.get_states()
                 for device in device_states:
                     if device.error:
@@ -135,12 +140,14 @@ class GoveeLightEntity(LightEntity):
         title: str,
         coordinator: GoveeDataUpdateCoordinator,
         device: GoveeDevice,
+        socket: Optional[int] = None,
     ):
-        """Init a Govee light strip."""
+        """Init a Govee light strip or socket entity."""
         self._hub = hub
         self._title = title
         self._coordinator = coordinator
         self._device = device
+        self._socket = socket
 
     @property
     def entity_registry_enabled_default(self):
@@ -154,7 +161,7 @@ class GoveeLightEntity(LightEntity):
     @property
     def _state(self):
         """Lights internal state."""
-        return self._device  # self._hub.state(self._device)
+        return self._device
 
     @cached_property
     def supported_color_modes(self) -> set[ColorMode]:
@@ -165,7 +172,6 @@ class GoveeLightEntity(LightEntity):
         if self._device.support_color_tem:
             color_mode.add(ColorMode.COLOR_TEMP)
         if not color_mode:
-            # brightness or on/off must be the only supported mode
             if self._device.support_brightness:
                 color_mode.add(ColorMode.BRIGHTNESS)
             else:
@@ -175,7 +181,10 @@ class GoveeLightEntity(LightEntity):
     async def async_turn_on(self, **kwargs):
         """Turn device on."""
         _LOGGER.debug(
-            "async_turn_on for Govee light %s, kwargs: %s", self._device.device, kwargs
+            "async_turn_on for Govee light %s (socket: %s), kwargs: %s",
+            self._device.device,
+            self._socket,
+            kwargs,
         )
         err = None
 
@@ -199,15 +208,18 @@ class GoveeLightEntity(LightEntity):
                 color_temp = COLOR_TEMP_KELVIN_MIN
             _, err = await self._hub.set_color_temp(self._device, color_temp)
 
-        # if there is no known specific command - turn on
+        # --- BEGIN H5082 MODIFICATION ---
         if just_turn_on:
-            _, err = await self._hub.turn_on(self._device)
-        # debug log unknown commands
+            if self._socket is not None:
+                _, err = await self._hub.turn_on(self._device, socket=self._socket)
+            else:
+                _, err = await self._hub.turn_on(self._device)
+        # --- END H5082 MODIFICATION ---
+
         if kwargs:
             _LOGGER.debug(
                 "async_turn_on doesnt know how to handle kwargs: %s", repr(kwargs)
             )
-        # warn on any error
         if err:
             _LOGGER.warning(
                 "async_turn_on failed with '%s' for %s, kwargs: %s",
@@ -218,12 +230,23 @@ class GoveeLightEntity(LightEntity):
 
     async def async_turn_off(self, **kwargs):
         """Turn device off."""
-        _LOGGER.debug("async_turn_off for Govee light %s", self._device.device)
-        await self._hub.turn_off(self._device)
+        _LOGGER.debug(
+            "async_turn_off for Govee light %s (socket: %s)",
+            self._device.device,
+            self._socket,
+        )
+        # --- BEGIN H5082 MODIFICATION ---
+        if self._socket is not None:
+            await self._hub.turn_off(self._device, socket=self._socket)
+        else:
+            await self._hub.turn_off(self._device)
+        # --- END H5082 MODIFICATION ---
 
     @property
     def unique_id(self):
         """Return the unique ID."""
+        if self._socket is not None:
+            return f"govee_{self._title}_{self._device.device}_socket_{self._socket}"
         return f"govee_{self._title}_{self._device.device}"
 
     @property
@@ -234,14 +257,16 @@ class GoveeLightEntity(LightEntity):
     @property
     def name(self):
         """Return the name."""
+        if self._socket is not None:
+            return f"{self._device.device_name} Outlet {self._socket}"
         return self._device.device_name
 
     @property
     def device_info(self):
         """Return the device info."""
         return {
-            "identifiers": {(DOMAIN, self.device_id)},
-            "name": self.name,
+            "identifiers": {(DOMAIN, f"govee_{self._title}_{self._device.device}")},
+            "name": self._device.device_name,
             "manufacturer": "Govee",
             "model": self._device.model,
         }
@@ -253,11 +278,7 @@ class GoveeLightEntity(LightEntity):
 
     @property
     def assumed_state(self):
-        """
-        Return true if the state is assumed.
-
-        This can be disabled in options.
-        """
+        """Return true if the state is assumed."""
         return (
             self._coordinator.use_assumed_state
             and self._device.source == GoveeSource.HISTORY
@@ -289,7 +310,6 @@ class GoveeLightEntity(LightEntity):
     @property
     def brightness(self):
         """Return the brightness value."""
-        # govee is reporting 0 to 254 - home assistant uses 1 to 255
         return self._device.brightness + 1
 
     @property
@@ -311,7 +331,6 @@ class GoveeLightEntity(LightEntity):
     def extra_state_attributes(self):
         """Return the device state attributes."""
         return {
-            # rate limiting information on Govee API
             "rate_limit_total": self._hub.rate_limit_total,
             "rate_limit_remaining": self._hub.rate_limit_remaining,
             "rate_limit_reset_seconds": round(self._hub.rate_limit_reset_seconds, 2),
@@ -319,7 +338,7 @@ class GoveeLightEntity(LightEntity):
                 self._hub.rate_limit_reset
             ).isoformat(),
             "rate_limit_on": self._hub.rate_limit_on,
-            # general information
             "manufacturer": "Govee",
             "model": self._device.model,
+            "socket": self._socket,
         }
