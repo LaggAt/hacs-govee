@@ -126,6 +126,16 @@ class GoveeDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Exception on getting states: {ex}") from ex
 
 
+# Preference order used to pick a color_mode when we haven't seen an
+# explicit command yet (e.g. right after startup). Most-capable first.
+_COLOR_MODE_PRIORITY = (
+    ColorMode.HS,
+    ColorMode.COLOR_TEMP,
+    ColorMode.BRIGHTNESS,
+    ColorMode.ONOFF,
+)
+
+
 class GoveeLightEntity(LightEntity):
     """Representation of a stateful light entity."""
 
@@ -141,6 +151,11 @@ class GoveeLightEntity(LightEntity):
         self._title = title
         self._coordinator = coordinator
         self._device = device
+        # Tracks which supported color mode was most recently commanded.
+        # The Govee API has no "active mode" concept of its own - a device
+        # always reports both `color` and `color_temp` regardless of which
+        # was set last - so we derive it from our own commands instead.
+        self._active_color_mode: ColorMode | None = None
 
     @property
     def entity_registry_enabled_default(self):
@@ -172,6 +187,25 @@ class GoveeLightEntity(LightEntity):
                 color_mode.add(ColorMode.ONOFF)
         return color_mode
 
+    @property
+    def color_mode(self) -> ColorMode:
+        """Return the current active color mode.
+
+        Home Assistant requires this whenever `supported_color_modes` is
+        non-empty (see light entity docs) - without it, service calls fail
+        with "does not report a color mode". We track the mode from the
+        last command we issued and fall back to a sane default (the most
+        capable supported mode) before any command has been sent, or if
+        the tracked mode is no longer one this device supports.
+        """
+        supported = self.supported_color_modes
+        if self._active_color_mode in supported:
+            return self._active_color_mode
+        for mode in _COLOR_MODE_PRIORITY:
+            if mode in supported:
+                return mode
+        return ColorMode.ONOFF
+
     async def async_turn_on(self, **kwargs):
         """Turn device on."""
         _LOGGER.debug(
@@ -185,11 +219,14 @@ class GoveeLightEntity(LightEntity):
             just_turn_on = False
             col = color.color_hs_to_RGB(hs_color[0], hs_color[1])
             _, err = await self._hub.set_color(self._device, col)
+            self._active_color_mode = ColorMode.HS
         if ATTR_BRIGHTNESS in kwargs:
             brightness = kwargs.pop(ATTR_BRIGHTNESS)
             just_turn_on = False
             bright_set = brightness - 1
             _, err = await self._hub.set_brightness(self._device, bright_set)
+            if ColorMode.BRIGHTNESS in self.supported_color_modes:
+                self._active_color_mode = ColorMode.BRIGHTNESS
         if ATTR_COLOR_TEMP_KELVIN in kwargs:
             color_temp = kwargs.pop(ATTR_COLOR_TEMP_KELVIN)
             just_turn_on = False
@@ -198,6 +235,7 @@ class GoveeLightEntity(LightEntity):
             elif color_temp < COLOR_TEMP_KELVIN_MIN:
                 color_temp = COLOR_TEMP_KELVIN_MIN
             _, err = await self._hub.set_color_temp(self._device, color_temp)
+            self._active_color_mode = ColorMode.COLOR_TEMP
 
         # if there is no known specific command - turn on
         if just_turn_on:
