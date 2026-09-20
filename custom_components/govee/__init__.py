@@ -93,13 +93,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     return unload_ok
 
 
-def _unload_component_entry(
+async def _unload_component_entry(
     hass: HomeAssistant, entry: ConfigEntry, component: str
 ) -> bool:
     """Unload an entry for a specific component."""
     success = False
     try:
-        success = hass.config_entries.async_forward_entry_unload(entry, component)
+        success = await hass.config_entries.async_forward_entry_unload(
+            entry, component
+        )
     except ValueError:
         # probably ValueError: Config entry was never loaded!
         return success
@@ -110,3 +112,4 @@ def _unload_component_entry(
             ex,
         )
         return success
+    return success
